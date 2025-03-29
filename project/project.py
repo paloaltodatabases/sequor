@@ -5,8 +5,12 @@ from typing import Any, Dict, List
 
 from flow.flow import Flow
 from flow.op import Op
-from operations.http_request import HttpRequestOp
+from operations.http_request import HTTPRequestOp
 from operations.transform import TransformOp
+from operations.print import PrintOp
+from operations.set_variable import SetVariableOp
+from operations.run_flow import RunFlowOp
+from project.specification import Specification
 from source.sources.sql_source import SQLSource
 
 class Project:
@@ -24,31 +28,15 @@ class Project:
         self.project_path = project_path
         self.project_name = os.path.basename(os.path.normpath(project_path))
         self.flows_dir = os.path.join(project_path, "flows")
-        self.flows_cache: Dict[str, Flow] = {}
-        
+        self.sources_dir = os.path.join(project_path, "sources")
+        self.specs_dir = os.path.join(project_path, "specifications")
+
         # Ensure flows directory exists
         if not os.path.exists(self.flows_dir):
             raise ValueError(f"Flows directory not found: {self.flows_dir}")
 
     
     def get_flow(self, flow_name: str) -> Flow:
-        """
-        Get a flow by name, loading and parsing it from YAML if not cached.
-        
-        Args:
-            flow_name: Name of the flow to retrieve
-        
-        Returns:
-            Flow: The parsed flow object
-            
-        Raises:
-            FileNotFoundError: If the flow file doesn't exist
-            ValueError: If the flow definition is invalid
-        """
-        # Return from cache if already loaded
-        if flow_name in self.flows_cache:
-            return self.flows_cache[flow_name]
-        
         # Construct flow file path
         flow_file = os.path.join(self.flows_dir, f"{flow_name}.yaml")
         
@@ -63,22 +51,9 @@ class Project:
         # Parse the flow definition into a Flow object
         flow = self._parse_flow(flow_name, flow_def)
         
-        # Cache the flow for future use
-        self.flows_cache[flow_name] = flow
-        
         return flow
     
     def _parse_flow(self, flow_name: str, flow_def: Dict[str, Any]) -> Flow:
-        """
-        Parse a flow definition dictionary into a Flow object.
-        
-        Args:
-            flow_name: Name of the flow
-            flow_def: Dictionary containing the flow definition
-            
-        Returns:
-            Flow: The parsed flow object
-        """
         # Extract flow metadata
         description = flow_def.get('description', '')
         
@@ -86,7 +61,7 @@ class Project:
         flow = Flow(flow_name, description)
         
         # Parse operations
-        ops = flow_def.get('ops', [])
+        ops = flow_def.get('steps', [])
         for op_def in ops:
             op = self._parse_op(op_def)
             flow.add_step(op)
@@ -94,27 +69,10 @@ class Project:
         return flow
     
     def _parse_op(self, op_def: Dict[str, Any]) -> Op:
-        """
-        Parse an operation definition into an Op object.
-        
-        Args:
-            op_def: Dictionary containing the operation definition
-            
-        Returns:
-            Op: The parsed operation object
-            
-        Raises:
-            ValueError: If the operation type is unknown
-        """
         op_type = op_def.get('op')
         op_id = op_def.get('id', f"{op_type}_{id(op_def)}")
         
-        if op_type == 'transform':
-            return TransformOp(self, op_def)
-        elif op_type == 'http_request':
-            return HttpRequestOp(self, op_def)
-        else:
-            raise ValueError(f"Unknown operation type: {op_type}")
+        return Op.create(op_type, self, op_def)
     
     def list_flows(self) -> List[str]:
         """
@@ -148,7 +106,7 @@ class Project:
             FileNotFoundError: If the source doesn't exist
         """
         # Construct flow file path
-        source_file = os.path.join(self.project_path, "sources", f"{source_name}.yaml")
+        source_file = os.path.join(self.sources_dir, f"{source_name}.yaml")
         
         # Check if file exists
         if not os.path.exists(source_file):
@@ -165,3 +123,18 @@ class Project:
             raise ValueError(f"Unknown source type: {source_type}")
         
         return source_def
+    
+    def get_specification(self, spec_type: str, spec_name: str) -> Specification:
+        # Construct file path
+        spec_file = os.path.join(self.specs_dir, spec_type, f"{spec_name}.yaml")
+        
+        # Check if file exists
+        if not os.path.exists(spec_file):
+            raise FileNotFoundError(f"Specification file not found: {spec_file}")
+        
+        # Load and parse the flow
+        with open(spec_file, 'r') as f:
+            spec_def = yaml.safe_load(f)
+        
+        return spec_def
+    

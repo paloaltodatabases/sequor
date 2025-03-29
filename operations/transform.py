@@ -1,24 +1,36 @@
+import logging
 from typing import Any, Dict
-from flow.op import Op, OpType
+
+from common.executor_utils import render_jinja
+from flow.op import Op
+from source.table_address import TableAddress
 
 
+@Op.register('transform')
 class TransformOp(Op):
-    def __init__(self, proj, conf: Dict[str, Any]):
-        self.type = OpType.TRANSFORM
+    def __init__(self, proj, op_def: Dict[str, Any]):
+        self.name = op_def.get('op')
         self.proj = proj
-        self.conf = conf
+        self.op_def = op_def
 
-    def run(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        source_name = self.conf.get('source')
-        query = self.conf.get('query')
-        target_table = self.conf.get('target_table')
+    def run(self, context):
+        logger = logging.getLogger("sequor.ops.transform")
+        self.op_def = render_jinja(context, self.op_def)
+        logger.info(f"Starting")
+        source_name = self.op_def.get('source')
+        query = self.op_def.get('query')
+        target_database = self.op_def.get('target_database')
+        target_namespace = self.op_def.get('target_namespace')
+        target_table = self.op_def.get('target_table')
+        
+        # Create TableAddress object from target_table string
+        targeet_table_addr = TableAddress(target_database, target_namespace, target_table)
 
         source = self.proj.get_source(source_name)
         with source.connect() as conn:
-            conn.drop_table_if_exists(target_table)
-            createTableSql = source.get_create_table_sql(query,target_table)
+            conn.drop_table(targeet_table_addr)
+            createTableSql = source.get_create_table_sql(query, targeet_table_addr)
             print(f"createTableSql: {createTableSql}")
             conn.execute_update(createTableSql)
     
-        print(f"TransformOp - done")
-        return context
+        logger.info(f"Finished")

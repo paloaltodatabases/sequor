@@ -1,12 +1,12 @@
+from flow.context import Context
 from typing import Any, Dict, List, Optional, Union
-
 from flow.op import Op
 
 
 class Flow:
     """A flow containing a sequence of operations or nested flows"""
-    def __init__(self, id: str, description: Optional[str] = None):
-        self.id = id
+    def __init__(self, name: str, description: Optional[str] = None):
+        self.name = name
         self.description = description
         self.steps: List[Op] = []
     
@@ -14,16 +14,10 @@ class Flow:
         """Add an operation or a nested flow to this flow"""
         self.steps.append(step)
     
-    def run(self, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def run(self, context: Context, start_step: int = 0):
+        context.set_flow_name(self.name)
         """Execute all steps in the flow sequentially"""
-        if context is None:
-            context = {}
-        
-        result = {}
-        for step in self.steps:
-            step_result = step.run(context)
-            # Update context with step result for next steps
-            context.update(step_result)
-            result.update(step_result)
-        
-        return result
+        for op_index, op in enumerate(self.steps[start_step:], start=start_step):
+            # op.run(context)
+            context.set_op_info(op_index, op.name)
+            context.job.run(context, op)
