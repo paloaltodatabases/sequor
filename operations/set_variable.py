@@ -12,6 +12,14 @@ class SetVariableOp(Op):
         self.proj = proj
         self.op_def = op_def
 
+    def get_title(self) -> str:
+        op_title = self.op_def.get('title')
+        if (op_title is not None):
+            title = self.name + ": " + op_title
+        else:
+            title = self.name + ": " + self.op_def.get('name') if self.op_def.get('name') else "unknown"
+        return title
+
     def run(self, context):
         logger = logging.getLogger("sequor.ops.set_variable")
         self.op_def = render_jinja(context, self.op_def)

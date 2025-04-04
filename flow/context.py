@@ -14,24 +14,21 @@ class Context:
         self.project = project
         self.cur_execution_stack_entry = None
         self.job = job
-        self.flow_name = None
-        self.op_index_in_flow = None
-        self.op_title = None
 
-    # @classmethod
-    # def from_project(cls, project):
-    #     context = cls(project)
-    #     context.variables = VariableBindings()
-    #     context.project = project
-    #     return context
+        # flow that is currently executing:
+        self.flow_type_name = None # can be: flow, if (for IfOp), None (for ForEachOp, WhileOp)
+        self.flow_name = None
+        self.flow_step_index = None
+        self.flow_step_index_name = None
 
     def clone(self):
         new_context = Context(self.project, self.job)
         new_context.variables = self.variables
         new_context.cur_execution_stack_entry = self.cur_execution_stack_entry
+        new_context.flow_type_name = self.flow_type_name
         new_context.flow_name = self.flow_name
-        new_context.op_index_in_flow = self.op_index_in_flow
-        new_context.op_title = self.op_title
+        new_context.flow_step_index = self.flow_step_index
+        new_context.flow_step_index_name = self.flow_step_index_name
         return new_context
     
     def set_variables(self, variables: VariableBindings):
@@ -40,16 +37,18 @@ class Context:
     def set_variable(self, name: str, value: Any):
         self.variables.set(name, value)
     
-    def set_flow_name(self, flow_name: str):
+    def set_flow_info(self, flow_type_name: str, flow_name: str):
+        self.flow_type_name = flow_type_name
         self.flow_name = flow_name
     
-    def set_op_info(self, op_index_in_flow: int, op_title: str):
-        self.op_index_in_flow = op_index_in_flow
-        self.op_title = op_title
-    
+    def set_flow_step_info(self, index: int, index_name: str = None ):
+        self.flow_step_index = index
+        self.flow_step_index_name = index_name
+
     
     def add_to_log_op_finished(self, logger: logging.Logger, message: str):
         start_time = self.cur_execution_stack_entry.start_time
         end_time = datetime.now()
         duration = end_time - start_time
         logger.info(f"{message} {duration}")
+    

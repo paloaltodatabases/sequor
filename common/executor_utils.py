@@ -5,13 +5,14 @@ from flow.context import Context
 from jinja2 import Template, StrictUndefined
 
 from flow.execution_stack_entry import ExecutionStackEntry
+from flow.user_error import UserError
 
 def build_jinja_context(context: Context):
     def var(name):
         try:
             return context.variables.get(name)
         except KeyError:
-            raise ValueError(f"Variable '{name}' is not defined in the context")
+            raise UserError(f"Variable '{name}' is not defined in the context")
     
     return {
         "var": var
@@ -102,7 +103,3 @@ def load_user_function(function_code: str, key_name: str, function_name: str = "
 
     return user_function
 
-def print_stack_trace_to_logger(logger: logging.Logger, stack: List[ExecutionStackEntry]):
-    logger.info("Stack trace:")
-    for entry in stack:
-        logger.info(f"{entry.op_title} {entry.flow_name} {entry.op_index}")

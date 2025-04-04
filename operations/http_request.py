@@ -1,15 +1,22 @@
 import json
+import logging
 from typing import Any, Dict, List
-from common.data_loader import DataLoader
 from flow.op import Op
 import requests
-from common.executor_utils import load_user_function
+from common.executor_utils import load_user_function, render_jinja
+from common.data_loader import DataLoader
+from flow.user_error import UserError
 from source.row import Row
+from source.source import Source
 from source.table_address import TableAddress
+from requests.auth import HTTPBasicAuth, HTTPDigestAuth
+from requests.auth import AuthBase
+from requests_toolbelt.utils import dump
 
 
 class HTTPRequestParameters:
-    def __init__(self, url, method, parameters, headers, body, parse_response_fun):
+    def __init__(self, auth_handler, url, method, parameters, headers, body, parse_response_fun):
+        self.auth_handler = auth_handler
         self.url = url
         self.method = method
         self.parameters = parameters
@@ -18,14 +25,47 @@ class HTTPRequestParameters:
         self.parse_response_fun = parse_response_fun
 
 
+class APIKeyAuth(AuthBase):
+    def __init__(self, key, value, add_to='header'):
+        self.key = key
+        self.value = value
+        self.add_to = add_to
+
+    def __call__(self, r):
+        if self.add_to == 'header':
+            r.headers[self.key] = self.value
+        elif self.add_to == 'query':
+            from urllib.parse import urlencode, urlparse, parse_qsl, urlunparse
+            parsed = urlparse(r.url)
+            query = dict(parse_qsl(parsed.query))
+            query[self.key] = self.value
+            r.url = urlunparse(parsed._replace(query=urlencode(query)))
+        else:
+            raise ValueError(f"Unsupported add_to location: {self.add_to}")
+        return r
+
 @Op.register('http_request')
 class HTTPRequestOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
-        self.name = op_def.get('op')
-        self.proj = proj
-        self.op_def = op_def
+        super().__init__(proj, op_def)
+    
+    def get_title(self) -> str:
+        request_def = self.op_def.get('request')
+        if request_def:
+            url = request_def.get('url')
+            if url:
+                url_title = self.name + ": " + url
+        op_title = self.op_def.get('title')
+        if (op_title is not None):
+            title = self.name + ": " + op_title
+        elif url_title:
+            title = self.name + ": " + url_title
+        else:
+            title = self.name + ": unknown"
+        return title
 
-    def _make_request_helper(self, http_params: HTTPRequestParameters, input_rows: List[Row]):
+    def _make_request_helper(self, http_params: HTTPRequestParameters, input_rows: List[Row], mode: str, logger: logging.Logger):
+        # https://requests.readthedocs.io/en/latest/
         json = http_params.body(input_rows) if http_params.body and callable(http_params.body) else http_params.body
         response = requests.request(
             method = http_params.method(input_rows) if callable(http_params.method) else http_params.method,  # or "POST", "PUT", "DELETE", etc.
@@ -34,20 +74,20 @@ class HTTPRequestOp(Op):
             headers = http_params.headers(input_rows) if callable(http_params.headers) else http_params.headers, # {"Content-Type": "application/json"},
             # json={"data": "payload"},  # JSON body
             # data={"form": "data"},     # Form data
-            # auth=("username", "password"),
+            auth = http_params.auth_handler,
             # timeout=10,
             # verify=True,  # SSL verification
             json = json
         )
+        if mode == "preview_response":
+            # http_log = dump.dump_all(response, request_prefix=b'>> ', response_prefix=b'<< ')
+            http_log = dump.dump_all(response, request_prefix=b'', response_prefix=b'')
+            http_log_st = http_log.decode("utf-8")
+            logger.info(f"HTTP request trace:\n----------------- TRACE START -----------------\n{http_log_st}\n----------------- TRACE END -----------------")
         return response
 
-    def _make_request(self, http_req_params: HTTPRequestParameters, input_rows):
-        response = self._make_request_helper(http_req_params, input_rows)
-        
-        # Print response details for debugging
-        print(f"Response status code: {response.status_code}")
-        print(f"Response headers: {response.headers}")
-        print(f"Response text: {response.text}")
+    def _make_request(self, http_req_params: HTTPRequestParameters, input_rows, mode: str, logger: logging.Logger):
+        response = self._make_request_helper(http_req_params, input_rows, mode, logger)
         
         try:
             response_parsed = http_req_params.parse_response_fun(response, None)
@@ -67,69 +107,46 @@ class HTTPRequestOp(Op):
                         break
             raise e
 
-        print(f"response parsed:")
-        print(json.dumps(response_parsed, indent=2))
-
         # data_loader = DataLoader(self.proj, self.http_source, self.source_name, self.table_addr)
         tables_def = response_parsed.get('tables', [])
         self.data_loader.run(tables_def)
 
-    def run(self, context):
+    def run(self, context, mode: str):
+        logger = logging.getLogger("sequor.ops.http_request")
+        self.op_def = render_jinja(context, self.op_def)
+        logger.info(f"Starting")
+
+        if mode == "preview_response":
+            logger.info("preview_response mode enabled for HTTP request operation")
+        else:
+            mode = "run"
+
         # Extract input def
         input_def = self.op_def.get('input')
-        source_name = input_def.get('source')
-        database_name = input_def.get('database')
-        namespace_name = input_def.get('namespace')
-        table_name = input_def.get('table')
-        input_table_addr = TableAddress(database_name, namespace_name, table_name)
+        if input_def:
+            source_name = Op.get_parameter(context, input_def, 'source', is_required=True)
+            database_name = Op.get_parameter(context, input_def, 'database', is_required=False)
+            namespace_name = Op.get_parameter(context, input_def, 'namespace', is_required=False)
+            table_name = Op.get_parameter(context, input_def, 'table', is_required=True)
+            input_table_addr = TableAddress(database_name, namespace_name, table_name)
+        else:
+            input_table_addr = None
+
         # Extract request def
         request_def = self.op_def.get('request')
-        url = request_def.get('url')
-        url_expression = request_def.get('url_expression')
-        if url and url_expression:
-            raise Exception("Both url and url_expression are specified in request definition. Only one of them can be specified.")
-        elif url_expression:
-            url = load_user_function(url_expression, "url_expression")
-        elif not url:
-            raise Exception("url or url_expression must be specified in request definition.")
-        method = request_def.get('method')
-        method_expression = request_def.get('method_expression')
-        if method and method_expression:
-            raise Exception("Both method and method_expression are specified in request definition. Only one of them can be specified.")
-        elif method_expression:
-            method = load_user_function(method_expression, "method_expression")
-        elif not method:
-            raise Exception("method or method_expression must be specified in request definition.")
-        parameters = request_def.get('parameters')
-        parameters_expression = request_def.get('parameters_expression')
-        if parameters and parameters_expression:
-            raise Exception("Both parameters and parameters_expression are specified in request definition. Only one of them can be specified.")
-        elif parameters_expression:
-            parameters = load_user_function(parameters_expression, "parameters_expression")
-        elif not parameters:
-            parameters = {}
-        headers = request_def.get('headers')
-        headers_expression = request_def.get('headers_expression')
-        if headers and headers_expression:
-            raise Exception("Both headers and headers_expression are specified in request definition. Only one of them can be specified.")
-        elif headers_expression:
-            headers = load_user_function(headers_expression, "headers_expression")
-        elif not headers:
-            headers = {}
-        body = request_def.get('body')
-        body_expression = request_def.get('body_expression')
-        if body and body_expression:
-            raise Exception("Both body and body_expression are specified in request definition. Only one of them can be specified.")
-        elif body_expression:
-            body = load_user_function(body_expression, "body_expression")
-        else:
-            body = {}
+        http_source_name = Op.get_parameter(context, request_def, 'source', is_required=False)
+        url = Op.get_parameter(context, request_def, 'url', is_required=True)
+        method = Op.get_parameter(context, request_def, 'method', is_required=True)
+        parameters = Op.get_parameter(context, request_def, 'parameters', is_required=False)
+        headers = Op.get_parameter(context, request_def, 'headers', is_required=False)
+        body = Op.get_parameter(context, request_def, 'body', is_required=False)
+
         # Extract response def
         response_def = self.op_def.get('response', {})
-        target_source_name = response_def.get('source')
-        target_database_name = response_def.get('database')
-        target_namespace_name = response_def.get('namespace')
-        target_table_name = response_def.get('table')
+        target_source_name = Op.get_parameter(context, response_def, 'source', is_required=False)
+        target_database_name = Op.get_parameter(context, response_def, 'database', is_required=False)
+        target_namespace_name = Op.get_parameter(context, response_def, 'namespace', is_required=False)
+        target_table_name = Op.get_parameter(context, response_def, 'table', is_required=False)
         target_table_addr = TableAddress(target_database_name, target_namespace_name, target_table_name)
         # Compile parser response function code
         parser = response_def.get('parser')
@@ -138,23 +155,53 @@ class HTTPRequestOp(Op):
         parse_response_expression = response_def.get('parser_expression')
         parse_response_fun = load_user_function(parse_response_expression, "parser_expression")
 
-        http_req_params = HTTPRequestParameters(url, method, parameters, headers, body, parse_response_fun)
-        self.data_loader = DataLoader(self.proj, target_source_name, target_table_addr)
+        auth_handler = None
+        http_source = self.proj.get_source(http_source_name)
+        http_source_auth_def = Source.get_parameter(context, http_source.source_def, 'auth')
+        http_source_auth_type = Source.get_parameter(context, http_source_auth_def, 'type', is_required=True)
+        if http_source_auth_type == 'basic_auth':
+            http_source_auth_username = Source.get_parameter(context, http_source_auth_def, 'username')
+            http_source_auth_password = Source.get_parameter(context, http_source_auth_def, 'password')
+            auth_handler = HTTPBasicAuth(http_source_auth_username, http_source_auth_password)
+        elif http_source_auth_type == 'bearer_token':
+            http_source_auth_token = Source.get_parameter(context, http_source_auth_def, 'token')
+            raise UserError("bearer_token auth is not supported yet.")
+        elif http_source_auth_type == 'digest_auth':
+            http_source_auth_username = Source.get_parameter(context, http_source_auth_def, 'username')
+            http_source_auth_password = Source.get_parameter(context, http_source_auth_def, 'password')
+            auth_handler = HTTPDigestAuth(http_source_auth_username, http_source_auth_password)
+        elif http_source_auth_type == 'api_key':
+            http_source_auth_key_name = Source.get_parameter(context, http_source_auth_def, 'key_name')
+            http_source_auth_key_value = Source.get_parameter(context, http_source_auth_def, 'key_value')
+            http_source_auth_add_to = Source.get_parameter(context, http_source_auth_def, 'add_to')
+            auth_handler = APIKeyAuth(http_source_auth_key_name, http_source_auth_key_value, http_source_auth_add_to)
+        elif http_source_auth_type == 'oauth_1_0':
+            raise UserError("oauth_1_0 auth is not supported yet.")
+        elif http_source_auth_type == 'oauth_2_0':
+            raise UserError("oauth_2_0 auth is not supported yet.")
+        else:
+            raise UserError(f"Unsupported auth type: {http_source_auth_type}")
 
-        try:
-            if table_name is None:
-                self._make_request(http_req_params, [])
-            else:
-                self.source = self.proj.get_source(source_name)
-                with self.source.connect() as conn:
-                    conn.open_table_for_read(input_table_addr)
-                    i = 0
-                    row = conn.next_row()
-                    while row is not None:
-                        i += 1
-                        self._make_request(http_req_params, [row])
+        http_req_params = HTTPRequestParameters(auth_handler, url, method, parameters, headers, body, parse_response_fun)
+
+        if mode == "preview_response":
+                self._make_request_helper(http_req_params, [], mode, logger)
+        elif mode == "run":
+            self.data_loader = DataLoader(self.proj, target_source_name, target_table_addr)
+            try:
+                if input_table_addr is None:
+                    self._make_request(http_req_params, [], mode, logger)
+                else:
+                    self.source = self.proj.get_source(source_name)
+                    with self.source.connect() as conn:
+                        conn.open_table_for_read(input_table_addr)
+                        i = 0
                         row = conn.next_row()
-        finally:
-            self.data_loader.close()
+                        while row is not None:
+                            i += 1
+                            self._make_request(http_req_params, [row], mode, logger)
+                            row = conn.next_row()
+            finally:
+                self.data_loader.close()
 
-        print(f"http_request - done")
+        logger.info(f"Finished")

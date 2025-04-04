@@ -16,7 +16,15 @@ class RunFlowOp(Op):
         self.proj = proj
         self.op_def = op_def
 
-    def run(self, context: Context):
+    def get_title(self) -> str:
+        op_title = self.op_def.get('title')
+        if (op_title is not None):
+            title = self.name + ": " + op_title
+        else:
+            title = self.name + ": " + self.op_def.get('flow') if self.op_def.get('flow') else "unknown"
+        return title
+
+    def run(self, context: Context, mode: str | None = None):
         logger = logging.getLogger("sequor.ops.run_flow")
         self.op_def = render_jinja(context, self.op_def)
         flow_name = self.op_def.get('flow')

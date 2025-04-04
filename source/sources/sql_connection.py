@@ -72,7 +72,6 @@ class SQLConnection(Connection):
         placeholders_sql = [f":{c.name}" for c in self.open_table_for_insert_model.columns]
         sql = f"INSERT INTO {table_qualified_name}(" + ", ".join(columns_sql) + ") VALUES (" + ", ".join(placeholders_sql) + ")"
         
-        print("insert sql: ", sql)
         self.open_table_for_insert_stmt = text(sql);
         self.conn.autocommit = autocommit
         self.open_table_for_insert_autocommit = autocommit
