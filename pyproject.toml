@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sequor"
+dynamic = ["version"]
+description = "SQL-centric integration platform for connecting applications and APIs"
+requires-python = ">=3.9"
+dependencies = [
+    "pyyaml>=6.0.2",
+    "jinja2>=3.1.6",
+    "ruamel.yaml>=0.18.10",
+    "sqlalchemy>=2.0.40",
+    "typer>=0.15.2",
+    "requests>=2.32.3",
+    "requests-toolbelt>=1.0.0",
+    "authlib>=1.5.2",
+    "psycopg2-binary>=2.9.10",
+    "duckdb-engine>=0.17.0",
+    "posthog>=4.0.0"
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "sequor._version.__version__"}  # Get version from _version.py
+
+[project.urls]
+repository = "https://github.com/paloaltodatabases/sequor"
+
+[project.scripts]
+sequor = "sequor.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.3.1",
+    "pytest-cov>=4.1.0",
+    "responses>=0.23.1",
+    "black>=23.3.0",
+    "build>=0.10.0",
+    "twine>=4.0.2"
+]

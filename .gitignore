@@ -4,6 +4,7 @@
 #PyCharm / JetBrains IDE config
 .idea/
 *.iml
+.vscode/
 
 # =======================================================================
 # Python specific
