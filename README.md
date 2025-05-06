@@ -23,7 +23,7 @@ View [examples of these operations](https://sequor.dev/#example-snippets) in act
 * [Documentation](https://docs.sequor.dev/)
 
 # Community
-* [Discuss Sequor on GitHub]() - To get help and participate in discussions about best practices, or any other conversation that would benefit from being searchable
+* [Discuss Sequor on GitHub](https://github.com/paloaltodatabases/sequor/discussions) - To get help and participate in discussions about best practices, or any other conversation that would benefit from being searchable
 
 # Stay connected
 * [Subsribe to our newsletter](https://buttondown.com/sequor) -  updated on new releases and features, guides, and case studies.
