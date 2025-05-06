@@ -14,7 +14,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 * transform - Apply SQL queries to prepare data for API calls or process API results, leveraging the full power of your database for data manipulation.
 * control statements - Build robust workflows with if-then-else conditionals, while loops, try-catch error handling, and more. These high-level orchestration capabilities ensure your integrations handle edge cases gracefully without custom code.
 
-View [examples of these operations](https://sequor.dev/) in action, demonstrating how easy it is to build sophisticated integrations with Sequor.
+View [examples of these operations](https://sequor.dev/#example-snippets) in action, demonstrating how easy it is to build sophisticated integrations with Sequor.
 
 # Getting started
 * [Install Sequor](https://docs.sequor.dev/getting-started/installation)
