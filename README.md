@@ -8,7 +8,7 @@ With a straightforward code-first approach (YAML for flow configuration, Jinja t
 **Own**, **control**, and **scale** your integrations with transparent configuration, familiar open techs, and without vendor lock-in.
 
 # How Sequor works
-Sequor is designed around an intuitive YAML-based workflow definition. Every integration flow is built from these powerful components:
+Sequor is designed around an intuitive YAML-based workflow definition. Every integration  flow is built from these powerful components:
 
 * http_request - Execute API calls with database integration that iterates over input records, performs dynamic HTTP requests, and maps responses back to database tables. Use Jinja templates or Python snippets for dynamic parameterization.
 * transform - Apply SQL queries to prepare data for API calls or process API results, leveraging the full power of your database for data manipulation.
