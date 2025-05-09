@@ -23,31 +23,60 @@ app = typer.Typer(
     pretty_exceptions_enable=False,
     pretty_exceptions_show_locals=False,
     rich_markup_mode=None)
-# app = typer.Typer()
+env_app = typer.Typer(
+    pretty_exceptions_enable=False,
+    pretty_exceptions_show_locals=False,
+    rich_markup_mode=None)
+app.add_typer(env_app, name="env")
 
 @app.command()
 def version():
     from sequor import __version__
     typer.echo(f"Sequor version: {__version__}")
 
-@app.command()
-def env_init(
-    env_dir: str = typer.Argument(None, help="Path to create environment directory (default: ~/sequor-env)"),
-    force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing environment directory", is_flag=True)
+@env_app.command()
+def init(
+    env_dir: str = typer.Argument(..., help="Path to directory for the new environment. Will be created if it doesn't exist. Example: ~/sequor-env"),
+    # force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing environment directory", is_flag=True)
 ):
-    """Initialize a Sequor environment directory for storing credentials, logs, and state."""
-    # If no env_dir provided, use default
-    if env_dir is None:
-        env_dir = os.path.expanduser("~/sequor-env")
-    
-    # Create directory structure and initial files
-    pass
+    try:
+        # Check if the directory already exists and is not empty
+        env_path = Path(os.path.expanduser(env_dir))
+        if env_path.exists() and any(env_path.iterdir()):
+            raise UserError(f"Environment directory '{env_dir}' already exists and is not empty. Please choose a different directory or clean the existing one.")
+            
+        # Create the directory if it does not exist
+        env_path.mkdir(parents=True, exist_ok=True)
+        # Create subdirectories
+        (env_path / "logs").mkdir(parents=True, exist_ok=True)
+        (env_path / "project_state").mkdir(parents=True, exist_ok=True)
+        # Create an empty variables.yaml file in the environment directory
+        (env_path / "variables.yaml").touch()
+        typer.echo(f"Environment initialized successfully at {env_dir}")
+    except Exception as e:
+        typer.echo(f"Error initializing environment \"{env_dir}\": " + str(e))
+        raise typer.Exit(code=1)
 
 @app.command()
 def init(
-    project_name: str = typer.Argument(..., help="Project to create (e.g., 'salesforce_enrichment')")
+    project_dir: str = typer.Argument(..., help="Path to directory for the new project. Will be created if it doesn't exist. Example: ~/my-sequor-project"),
 ):
-    pass
+    try:
+        # Check if the directory already exists and is not empty
+        project_path = Path(os.path.expanduser(project_dir))
+        if project_path.exists() and any(project_path.iterdir()):
+            raise UserError(f"Project directory '{project_dir}' already exists and is not empty. Please choose a different directory or clean the existing one.")
+            
+        # Create the project directory if it does not exist
+        project_path.mkdir(parents=True, exist_ok=True)
+        # Create subdirectories
+        (project_path / "flows").mkdir(parents=True, exist_ok=True)
+        (project_path / "sources").mkdir(parents=True, exist_ok=True)
+        typer.echo(f"Project initialized successfully at {project_dir}")
+    except Exception as e:
+        typer.error(f"Error initializing project \"{project_dir}\": " + str(e))
+        raise typer.Exit(code=1)
+   
 
 @app.command()
 def run(
@@ -112,7 +141,7 @@ def run(
         # Init logging
         # Stick to "what" in INFO, and "how" in DEBUG 
         log_dir = env_dir / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
+        # log_dir.mkdir(parents=True, exist_ok=True)
         log_path = log_dir / "sequor.log"
         logging.basicConfig(
             level=logging.INFO,                         # default level
@@ -168,38 +197,19 @@ def run(
             job_stacktrace = Common.get_exception_traceback()
             logger.error("Python stacktrace:\n" + job_stacktrace)
         logger.error(str(e))
-
-        # Only re-raise if it's not a UserException
-        # if isinstance(e, UserError):
-        #     logger.error(str(e))
-        # else:
-        #     raise e
+        raise typer.Exit(code=1)
 
 def main():
     app()
 
 if __name__ == "__main__":
     # sys.argv = ["cli.py", "--help"]
+    # sys.argv = ["cli.py", "env", "init", "~/sequor-env"]
+    sys.argv = ["cli.py", "init", "~/myprogs/sequor-misc"]
 
-    # Example tests
-    sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
-    # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-
-    # sys.argv = ["cli.py", "run", "github_repo_health", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "github_fetch_issues", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-
-    # sys.argv = ["cli.py", "run", "mailchimp_fetch_subscribers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "mailchimp_create_segment", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]    
-
-    # sys.argv = ["cli.py", "run", "salesforce_fetch_accounts", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "salesforce_create_accounts", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-
-    # sys.argv = ["cli.py", "run", "shopify_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-
-    # sys.argv = ["cli.py", "run", "database_ops_example", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "control_ops_example", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sequor-integrations tests
+    # sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
 
     # Utility
