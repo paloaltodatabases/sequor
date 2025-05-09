@@ -63,5 +63,5 @@ class IfOp(Op):
             new_context.set_flow_step_info(condition_met_index, "condition")
         else:
             new_context.set_flow_step_info(None)
-        context.job.run_op(new_context, block_op)
+        context.job.run_op(new_context, block_op, None)
         logger.info(f"Finished")

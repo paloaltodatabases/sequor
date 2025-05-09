@@ -13,12 +13,13 @@ class TableAddressToConnectionMap:
 
 class DataLoader:
     """Class for loading data from data definition"""
-    _conn_pool: List[TableAddressToConnectionMap] = []
+    
     
     def __init__(self, proj, source_name: str, table_addr: TableAddress):
         self.proj = proj
         self.source_name = source_name
         self.table_addr = table_addr
+        self._conn_pool: List[TableAddressToConnectionMap] = []
 
     # def __enter__(self):
     #     return self
@@ -104,14 +105,14 @@ class DataLoader:
             write_mode = table_def.get('write_mode')
             if write_mode is None:
                 write_mode = "create"
-            if data_def is not None: # skip quitely if no data, we used it in InfoLink for HTTPRequest op but why?
+            if data_def is not None: # skip quietly if no data, we used it in InfoLink for HTTPRequest op but why?
                 conn = self.get_connection(source_name, table_addr, model_name, model_def, write_mode)
                 # insert data
                 for record_def in data_def:
                     record = Row()
                     for column_schema in conn.model.columns:
                         column_name = column_schema.name
-                        column_value = str(record_def.get(column_name)) # need to convet to string because it can be any type returned by the source
+                        column_value = str(record_def.get(column_name)) # need to convert to string because it can be any type returned by the source
                         column = Column(column_name, column_value)
                         record.add_column(column)
                     conn.insert_row(record)

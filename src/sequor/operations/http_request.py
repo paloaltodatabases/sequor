@@ -138,10 +138,10 @@ class HTTPRequestOp(Op):
         body = Op.eval_parameter(context, http_params.body, render=1, null_literal=True)
         request_body = None
         if http_params.body_format == "json":
-            body_dict = self._convert_yaml_to_python(body)
-            body_test = {
-                "email_address": "test@test.com"
-            }
+            # body_dict = self._convert_yaml_to_python(body)
+            # body_test = {
+            #     "email_address": "test@test.com"
+            # }
             request_body = json.dumps(self._convert_yaml_to_python(body))
             # if "Content-Type" not in headers:
             # #     headers["Content-Type"] = "application/json"
@@ -150,7 +150,7 @@ class HTTPRequestOp(Op):
             # if "Content-Type" not in headers:
             #     headers["Content-Type"] = "application/x-www-form-urlencoded"
         elif http_params.body_format == "multipart_form_data":
-            raise UserError("multipart_form_data is not supported yet")
+            raise UserError("multipart_form_data body format is not supported yet")
             # # Handle files vs regular data
             # request_files = {}
             # request_data = {}
@@ -162,24 +162,26 @@ class HTTPRequestOp(Op):
             #     else:
             #         request_data[key] = value
         elif http_params.body_format == "xml":
+            raise UserError("xml body format is not supported yet")
             # Assume body is already XML string or convert dict to XML
-            request_body = self._convert_yaml_to_python(body)
+            # request_body = self._convert_yaml_to_python(body)
             # if "Content-Type" not in headers:
             #     headers["Content-Type"] = "application/xml"
         elif http_params.body_format == "text":
-            request_body = self._convert_yaml_to_python(body)
+            raise UserError("text body format is not supported yet")
+            # request_body = self._convert_yaml_to_python(body)
             # if "Content-Type" not in headers:
             #     headers["Content-Type"] = "text/plain"
         elif http_params.body_format == "binary":
-            raise UserError("multipart_form_data is not supported yet")
+            raise UserError("binary body format is not supported yet")
             # Assume body is either binary data or a path to a file
-            if isinstance(body, str) and body.startswith("file://"):
-                with open(body[7:], "rb") as f:
-                    request_body = f.read()
-            else:
-                request_body = self._convert_yaml_to_python(body)
-            if "Content-Type" not in headers:
-                headers["Content-Type"] = "application/octet-stream"
+            # if isinstance(body, str) and body.startswith("file://"):
+            #     with open(body[7:], "rb") as f:
+            #         request_body = f.read()
+            # else:
+            #     request_body = self._convert_yaml_to_python(body)
+            # if "Content-Type" not in headers:
+            #     headers["Content-Type"] = "application/octet-stream"
 
         response = http_service.request(
             method = Op.eval_parameter(context, http_params.method, render=1),  # or "POST", "PUT", "DELETE", etc.

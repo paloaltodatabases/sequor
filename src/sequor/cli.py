@@ -182,28 +182,31 @@ if __name__ == "__main__":
     # sys.argv = ["cli.py", "--help"]
 
     # Example tests
-    # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
-    sys.argv = ["cli.py", "run", "github_repo_health", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "github_fetch_issues", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
-    # sys.argv = ["cli.py", "run", "mailchimp_fetch_subscribers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "mailchimp_create_segment", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]    
+    # sys.argv = ["cli.py", "run", "github_repo_health", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "github_fetch_issues", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
-    # sys.argv = ["cli.py", "run", "salesforce_fetch_accounts", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "salesforce_create_accounts", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "mailchimp_fetch_subscribers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "mailchimp_create_segment", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]    
 
-    # sys.argv = ["cli.py", "run", "shopify_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "salesforce_fetch_accounts", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "salesforce_create_accounts", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
-    # sys.argv = ["cli.py", "run", "database_ops_example", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "control_ops_example", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "shopify_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+
+    # sys.argv = ["cli.py", "run", "database_ops_example", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "control_ops_example", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
 
     # Utility
-    # sys.argv = ["cli.py", "run", "flow1", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "control_ops_example", "--op-id", "set_var1", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "mailchimp_create_segment", "--op-id", "add_segment_members", "--debug-foreach-record", '{"email_address":"maxim@paloaltodatabases.com"}', "--debug-request-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor_projects/misc"]
+    # sys.argv = ["cli.py", "run", "salesforce_delete_accounts", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers", "--op-id", "get_customers", "--debug-request-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--debug-foreach-record", '{"id":"1", "first_name":"Bob", "last_name": "brown", "email":"bob@brown1.net"}', "--debug-request-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
 
  

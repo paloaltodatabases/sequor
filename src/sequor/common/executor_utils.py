@@ -20,7 +20,7 @@ def set_variable_from_def(context: Context, name: str, value_def: Any):
     else:
         var_value = value_def
         var_scope = "project"
-    set_variable(context, name, value_def, "project")
+    set_variable(context, name, var_value, var_scope)
     return var_value, var_scope
 
 def set_variable(context: Context, name: str, value: Any, scope: str):

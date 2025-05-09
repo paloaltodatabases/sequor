@@ -32,12 +32,12 @@ class TransformOp(Op):
         target_table = self.op_def.get('target_table')
         
         # Create TableAddress object from target_table string
-        targeet_table_addr = TableAddress(target_database, target_namespace, target_table)
+        target_table_addr = TableAddress(target_database, target_namespace, target_table)
 
         source = self.proj.get_source(source_name)
         with source.connect() as conn:
-            conn.drop_table(targeet_table_addr)
-            createTableSql = source.get_create_table_sql(query, targeet_table_addr)
+            conn.drop_table(target_table_addr)
+            createTableSql = source.get_create_table_sql(query, target_table_addr)
             print(f"Executing: {createTableSql}")
             conn.execute_update(createTableSql)
     

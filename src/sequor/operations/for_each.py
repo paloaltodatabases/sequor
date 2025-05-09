@@ -52,7 +52,7 @@ class ForEachOp(Op):
             while row is not None:
                 row_count += 1
                 new_context.set_variable(var_name, row)
-                context.job.run_op(new_context, block_op)
+                context.job.run_op(new_context, block_op, None)
                 row = conn.next_row()
 
 
