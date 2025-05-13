@@ -1,11 +1,11 @@
 # Sequor
-Sequor is a SQL-centric workflow platform for building reliable API integrations in modern data stacks. It's the open alternative to black-box SaaS connectors, giving data teams complete control over their integration pipelines. With Sequor, you can execute HTTP APIs and database operations in transparent, version-controlled workflows that you fully own and understand. Easily deploy on-premise to completely eliminate SaaS lock-in.
+Sequor is a SQL-centric workflow platform for building reliable API integrations in modern data stacks. It's the open alternative to black-box SaaS connectors, giving data teams complete control over their integration pipelines.
 
-Sequor uniquely fuses API execution with your database, enabling bidirectional data circulation between API and database tables. By storing intermediate data in your database, you can leverage the full power of SQL for transformations, analytics, and business logic. This unified execution model eliminates the traditional boundary between iPaaS-style app integration and ETL-style data pipelines, giving you a single powerful platform for all your integration needs.
+Sequor fuses API execution with your database, enabling bidirectional data flow between APIs and database tables. By storing intermediate data in your database, you can leverage the full power of SQL for transformations, analytics, and business logic. This unified execution model eliminates the traditional boundary between iPaaS-style app integration and ETL-style data pipelines.
 
-With a straightforward code-first approach (YAML for flow configuration, Jinja templates and Python for dynamic parameters, and SQL for logic), you can apply software engineering best practices to integrations — including version control, collaboration, CI/CD, and local development. 
+With Sequor's code-first approach (YAML for flows, Jinja or Python for dynamic parameters, and SQL for logic), you can apply software engineering best practices to integrations: version control, collaboration, CI/CD, and local development.
 
-**Own**, **control**, and **scale** your integrations with transparent configuration, familiar open techs, and without vendor lock-in.
+**Own**, **control**, and **scale** your integrations with transparent configuration, familiar open technologies, and without vendor lock-in.
 
 # How Sequor works
 Sequor is designed around an intuitive YAML-based workflow definition. Every integration  flow is built from these powerful components:
@@ -17,7 +17,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 View [examples of these operations](https://sequor.dev/#example-snippets) in action, demonstrating how easy it is to build sophisticated integrations with Sequor.
 
 # Getting started
-* [Install Sequor](https://docs.sequor.dev/getting-started/installation)
+* [Install Sequor](https://docs.sequor.dev/getting-started/installation). It is easy to start with `pip install sequor`.
 * [Follow Quickstart](https://docs.sequor.dev/getting-started/quickstart)
 * [Explore examples of real-life integrations](https://github.com/paloaltodatabases/sequor-integrations)
 * [Documentation](https://docs.sequor.dev/)
