@@ -8,7 +8,7 @@ from sequor.core.op import Op
 from sequor.source.table_address import TableAddress
 
 
-@Op.register('block')
+# @Op.register('block')
 class BlockOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         super().__init__(proj, op_def)

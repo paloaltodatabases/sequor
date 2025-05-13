@@ -4,31 +4,21 @@ from sequor.common.common import Common
 from sequor.common.executor_utils import UserContext, load_user_function, render_jinja
 from sequor.core.context import Context
 
+
 class Op:
     """Base class for all operations"""
-    # Registry to store operation types and their corresponding classes
-    _registry: ClassVar[Dict[str, Type['Op']]] = {}
+    # # Registry to store operation types and their corresponding classes
+    # _registry: ClassVar[Dict[str, Type['Op']]] = {}
     
-    @classmethod
-    def register(cls, op_type: str):
-        """Decorator to register operation classes"""
-        def decorator(op_class: Type['Op']):
-            # Register the operation class
-            cls._registry[op_type] = op_class
-            return op_class
-        return decorator
+    # @classmethod
+    # def register(cls, op_type: str):
+    #     """Decorator to register operation classes"""
+    #     def decorator(op_class: Type['Op']):
+    #         # Register the operation class
+    #         cls._registry[op_type] = op_class
+    #         return op_class
+    #     return decorator
     
-    @classmethod
-    def create(cls, proj, op_def: Dict[str, Any]) -> 'Op':
-        """Factory method to create operation instances"""
-        op_type = op_def.get('op')
-        if op_type not in cls._registry:
-            raise ValueError(f"Unknown operation type: {op_type}")
-        return cls._registry[op_type](proj, op_def)
-
-    @staticmethod
-    def op_from_def(proj, op_def: Dict[str, Any]) -> 'Op':
-        return Op.create(proj, op_def)
 
     def __init__(self, proj, op_def: Dict[str, Any]):
         self.name = op_def.get('op')

@@ -5,7 +5,7 @@ from sequor.common.executor_utils import render_jinja
 from sequor.core.op import Op
 
 
-@Op.register('print')
+# @Op.register('print')
 class PrintOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         super().__init__(proj, op_def)

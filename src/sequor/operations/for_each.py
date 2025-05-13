@@ -4,10 +4,11 @@ from typing import Any, Dict
 from sequor.core.context import Context
 from sequor.core.flow import Flow
 from sequor.core.op import Op
+from sequor.core.registry import create_op
 from sequor.source.table_address import TableAddress
 
 
-@Op.register('for_each')
+# @Op.register('for_each')
 class ForEachOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         super().__init__(proj, op_def)
@@ -39,7 +40,7 @@ class ForEachOp(Op):
             "op_name_alias": f"for_each_block",
             "steps": steps_def
         }
-        block_op = Op.op_from_def(context.project, block_op_def)
+        block_op = create_op(context.project, block_op_def)
         new_context = context.clone()
         new_context.set_flow_info("for_each", None)
         new_context.set_flow_step_info(None)

@@ -6,6 +6,17 @@ import tempfile
 from ruamel.yaml import YAML
 
 from sequor.core.environment import Environment
+from sequor.core.instance import Instance
+from sequor.core.registry import create_op, create_source
+from sequor.operations.block import BlockOp
+from sequor.operations.execute import ExecuteOp
+from sequor.operations.for_each import ForEachOp
+from sequor.operations.http_request import HTTPRequestOp
+from sequor.operations.if_op import IfOp
+from sequor.operations.print import PrintOp
+from sequor.operations.run_flow import RunFlowOp
+from sequor.operations.set_variable import SetVariableOp
+from sequor.operations.transform import TransformOp
 from sequor.source.sources.duckdb_source import DuckDBSource
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -20,7 +31,8 @@ from sequor.source.sources.http_source import HTTPSource
 from sequor.source.sources.sql_source import SQLSource
 
 class Project:
-    def __init__(self, env: Environment, project_dir: Path):
+    def __init__(self, instance: Instance, env: Environment, project_dir: Path):
+        self.instance = instance
         self.env = env
         self.project_dir = project_dir
         self.flows_dir = os.path.join(project_dir, "flows")
@@ -28,21 +40,43 @@ class Project:
         self.specs_dir = os.path.join(project_dir, "specifications")
 
         # Load project configuration file
-        project_def_file = os.path.join(self.project_dir, f"sequor_project.yaml")
+        project_def_file = os.path.join(self.project_dir, f"project.yaml")
         if not os.path.exists(project_def_file):
             raise UserError(f"Project configuration file does not exist: {project_def_file}")
 
         with open(project_def_file, 'r') as f:
             project_def = yaml.load(f)
-            
-        self.project_name = project_def.get('name')
-        if self.project_name is None:
-            raise UserError(f"Project configuration file does not contain 'name' field: {project_def_file}")
-        self.project_version = project_def.get('version')
+            self.project_name = project_def.get('name')
+            if self.project_name is None:
+                raise UserError(f"Project configuration file does not contain 'name' field: {project_def_file}")
+            # self.project_version = project_def.get('version')
 
-        self.project_state_dir = env.get_project_state_dir(self.project_name)
+     
+
+        self.project_state_dir = instance.get_project_state_dir() / self.project_name
         self.project_vars_file = os.path.join(self.project_state_dir, "variables.yaml")
         
+    def get_source(self, source_name: str) -> Any:
+        # Construct flow file path
+        source_file = os.path.join(self.sources_dir, f"{source_name}.yaml")
+
+        # Check if file exists
+        if not os.path.exists(source_file):
+            raise UserError(
+                f"Source \"{source_name}\" not found: file does not exist: {source_file}")
+
+        # Load and parse the flow
+        with open(source_file, 'r') as f:
+            source_def = yaml.load(f)
+        source = create_source(self, source_name, source_def)
+        return source
+    
+    # @classmethod
+    # def create(cls, proj, op_def: Dict[str, Any]) -> 'Op':
+
+    # @staticmethod
+    # def op_from_def(proj, op_def: Dict[str, Any]) -> 'Op':
+    #     return create_op(proj, op_def)
 
     def get_flow(self, flow_name: str) -> Flow:
         # Construct flow file path
@@ -64,7 +98,7 @@ class Project:
         flow = Flow("flow", flow_name, description)
         ops = flow_def.get('steps', [])
         for op_def in ops:
-            op = Op.op_from_def(self, op_def)
+            op = create_op(self, op_def)
             flow.add_step(op)
 
         return flow
@@ -72,7 +106,7 @@ class Project:
     def build_flow_from_block_def(self, block_def: List[Dict[str, Any]]) -> Flow:
         flow = Flow("block", name = None, description = None)
         for op_def in block_def:
-            op = Op.op_from_def(self, op_def)
+            op = create_op(self, op_def)
             flow.add_step(op)
         return flow
     
@@ -89,30 +123,6 @@ class Project:
         
         return flow_names
 
-    def get_source(self, source_name: str) -> Any:
-        # Construct flow file path
-        source_file = os.path.join(self.sources_dir, f"{source_name}.yaml")
-        
-        # Check if file exists
-        if not os.path.exists(source_file):
-            raise UserError(f"Source \"{source_name}\" not found: file does not exist: {source_file}")
-        
-        # Load and parse the flow
-        with open(source_file, 'r') as f:
-            source_def = yaml.load(f)
-        
-        source: Source = None
-        source_type = source_def.get('type')
-        if source_type == 'http':
-            source = HTTPSource(self, source_name, source_def)        
-        elif source_type == 'postgres':
-            source = SQLSource(self, source_name, source_def)
-        elif source_type == 'duckdb':
-            source = DuckDBSource(self, source_name, source_def)
-        else:
-            raise ValueError(f"Unknown source type: {source_type}")
-        
-        return source
     
     def get_specification(self, spec_type: str, spec_name: str) -> Specification:
         # Construct file path

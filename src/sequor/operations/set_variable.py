@@ -5,7 +5,7 @@ from sequor.common.executor_utils import render_jinja, set_variable, set_variabl
 from sequor.core.op import Op
 
 
-@Op.register('set_variable')
+# @Op.register('set_variable')
 class SetVariableOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         self.name = op_def.get('op')

@@ -9,7 +9,7 @@ from sequor.core.variable_bindings import VariableBindings
 from sequor.source.table_address import TableAddress
 
 
-@Op.register('run_flow')
+# @Op.register('run_flow')
 class RunFlowOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         self.name = op_def.get('op')

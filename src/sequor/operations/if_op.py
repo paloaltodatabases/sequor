@@ -5,10 +5,11 @@ from sequor.common.executor_utils import render_jinja
 from sequor.core.context import Context
 from sequor.core.flow import Flow
 from sequor.core.op import Op
-from sequor.source.table_address import TableAddress
+from sequor.core.registry import create_op
 
 
-@Op.register('if')
+
+# @Op.register('if')
 class IfOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         super().__init__(proj, op_def)
@@ -42,7 +43,7 @@ class IfOp(Op):
                     "title": f"{condition_value_def}",
                     "steps": then_steps_def
                 }
-                block_op = Op.op_from_def(context.project, block_op_def)
+                block_op = create_op(context.project, block_op_def)
                 # flow = context.project.build_flow_from_block_def("then", None, then_block)
                 is_condition_met = True
                 condition_met_index = index

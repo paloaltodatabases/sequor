@@ -85,7 +85,7 @@ class OAuth2PasswordFlowSession():
             self.refresh_token(self.token_endpoint)
         return self.token
 
-@Op.register('http_request')
+# @Op.register('http_request')
 class HTTPRequestOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         super().__init__(proj, op_def)

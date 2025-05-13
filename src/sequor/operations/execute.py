@@ -7,7 +7,7 @@ from sequor.core.user_error import UserError
 from sequor.source.table_address import TableAddress
 
 
-@Op.register('execute')
+# @Op.register('execute')
 class ExecuteOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         self.name = op_def.get('op')
