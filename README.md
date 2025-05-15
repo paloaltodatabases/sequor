@@ -5,7 +5,7 @@ Sequor fuses API execution with your database, enabling bidirectional data flow 
 
 With Sequor's code-first approach (YAML for flows, Jinja or Python for dynamic parameters, and SQL for logic), you can apply software engineering best practices to integrations: version control, collaboration, CI/CD, and local development.
 
-**Own**, **control**, and **scale** your integrations with transparent configuration, familiar open technologies, and without vendor lock-in.
+**Own**, **control**, and **scale** your integrations with transparent configuration, familiar open technologies, and without SaaS lock-in.
 
 # How Sequor works
 Sequor is designed around an intuitive YAML-based workflow definition. Every integration  flow is built from these powerful components:
