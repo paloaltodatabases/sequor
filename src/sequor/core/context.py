@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 from typing import Any, TYPE_CHECKING
+from sequor.core.flow_log_entry import FlowLogEntry
 from sequor.core.variable_bindings import VariableBindings
 
 # if TYPE_CHECKING:
@@ -14,6 +15,7 @@ class Context:
         self.cur_execution_stack_entry = None
         self.job = job
         self.variables = VariableBindings()
+        self.flow_log = []
 
 
         # flow that is currently executing:
@@ -35,6 +37,7 @@ class Context:
         new_context.flow_name = self.flow_name
         new_context.flow_step_index = self.flow_step_index
         new_context.flow_step_index_name = self.flow_step_index_name
+        new_context.flow_log = self.flow_log
         return new_context
     
     def set_variables(self, variables: VariableBindings):
@@ -64,5 +67,7 @@ class Context:
         start_time = self.cur_execution_stack_entry.start_time
         end_time = datetime.now()
         duration = end_time - start_time
+        self.flow_log.append(FlowLogEntry(message, start_time, end_time))
         logger.info(f"{message} {duration}")
+
     

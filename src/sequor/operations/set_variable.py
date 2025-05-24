@@ -39,5 +39,7 @@ class SetVariableOp(Op):
             var_set_str = f"\"{var_name}\" to \"{var_value_set}\" in {var_scope_set} scope"
             logger.info(f"Setting variable: " + var_set_str)
             vars_set.append(var_set_str)
-        msg = f"Finished. Variables set: " + ", ".join(vars_set)
-        context.add_to_log_op_finished(logger, msg)
+        # msg = f"Finished. Variables set: " + ", ".join(vars_set)
+        # context.add_to_log_op_finished(logger, msg)
+        context.add_to_log_op_finished(
+            logger, f"Finished \"" + self.get_title() + "\": variables set: " + ", ".join(vars_set))

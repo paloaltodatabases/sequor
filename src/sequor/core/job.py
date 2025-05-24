@@ -7,6 +7,9 @@ from sequor.core.execution_stack_entry import ExecutionStackEntry
 from sequor.core.op import Op
 from sequor.core.user_error import UserError
 from sequor.project.project import Project
+import uuid
+
+logger = logging.getLogger("sequor.job")
 
 
 class Job:
@@ -17,12 +20,14 @@ class Job:
         self.execution_stack = []
         self.options = options
 
+
     def get_cur_stack_entry(self) -> ExecutionStackEntry:
         if len(self.execution_stack) == 0:
             return None
         return self.execution_stack[-1]
 
-    def run(self, logger: logging.Logger, op_options: Dict[str, Any]):
+    # logger: logging.Logger,
+    def run(self, op_options: Dict[str, Any]):
         context = Context(self.project, self)
         try:
             self.run_op(context, self.op, op_options)
@@ -54,20 +59,20 @@ class Job:
                 job_stacktrace_lines.append(log_str)
 
             job_stacktrace = Common.get_exception_traceback()
-            if self.options["show_stacktrace"]:
+            if self.options.get("show_stacktrace"):
                 logger.error("Python stacktrace:\n" + job_stacktrace)
             # cur_stack_entry can be None if the error happens in the initial op of a job: e.g. in get_title() of an op during stack_entry creation
             if cur_stack_entry is not None:
                 error_msg = f"Error in \"{cur_stack_entry.op_title}\": {str(e)}"
             else:
                 error_msg = f"Error: {str(e)}"
-            if not self.options["disable_flow_stacktrace"]:
+            if self.options.get("disable_flow_stacktrace") is not None and not self.options["disable_flow_stacktrace"]:
                 error_msg = error_msg + "\nStacktrace (most recent op last):\n" + "\n".join(job_stacktrace_lines)
             logger.error(error_msg)
+        flow_log_dict = [entry.to_dict() for entry in context.flow_log]
+        return {"flow_log": flow_log_dict}
 
-            # # Only re-raise if it's not a UserException
-            # if not isinstance(e, UserError):
-            #     raise e
+
 
 
     def run_op(self, context: Context, op: Op, op_options: Dict[str, Any]):

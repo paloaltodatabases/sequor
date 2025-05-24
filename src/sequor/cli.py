@@ -162,15 +162,15 @@ def run(
 
         # Initialize an environment
         if env_name is not None:
-            env = Environment(instance, env_name)
+            env = Environment(env_name, instance.get_home_dir())
         else:
-            env = Environment.create_empty(instance)
+            env = Environment.create_empty(instance.get_home_dir())
 
         # # Register all operations at program startup
         # register_all_operations()
 
         # Initialize a project
-        project = Project(instance, env, project_dir)
+        project = Project(env, project_dir)
 
         op_options = {
             "debug_foreach_record": debug_foreach_record,
@@ -193,7 +193,7 @@ def run(
             }
             op = RunFlowOp(project, run_flow_op_def)
         job = Job(env, project, op, {"disable_flow_stacktrace": disable_flow_stacktrace, "show_stacktrace": show_stacktrace})
-        job.run(logger, op_options)
+        job.run(op_options)
     except Exception as e:
         if show_stacktrace:
             job_stacktrace = Common.get_exception_traceback()
@@ -211,13 +211,14 @@ if __name__ == "__main__":
 
 
     # sequor-integrations tests
-    sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    # sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
 
 
     # Utility
-    # sys.argv = ["cli.py", "run", "salesforce_fetch_instance_url", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    sys.argv = ["cli.py", "run", "control_ops_example", "--stacktrace", "--project-dir",
+                "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers", "--op-id", "get_customers", "--debug-request-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers_simple", "--op-id", "get_customers", "--debug-request-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--debug-foreach-record", '{"id":"1", "first_name":"Bob", "last_name": "brown", "email":"bob@brown1.net"}', "--debug-request-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
 

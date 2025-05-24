@@ -6,7 +6,7 @@ import tempfile
 from ruamel.yaml import YAML
 
 from sequor.core.environment import Environment
-from sequor.core.instance import Instance
+# from sequor.core.instance import Instance
 from sequor.core.registry import create_op, create_source
 from sequor.operations.block import BlockOp
 from sequor.operations.execute import ExecuteOp
@@ -18,8 +18,6 @@ from sequor.operations.run_flow import RunFlowOp
 from sequor.operations.set_variable import SetVariableOp
 from sequor.operations.transform import TransformOp
 from sequor.source.sources.duckdb_source import DuckDBSource
-yaml = YAML()
-yaml.preserve_quotes = True
 from typing import Any, Dict, List
 
 from sequor.core.flow import Flow
@@ -31,8 +29,11 @@ from sequor.source.sources.http_source import HTTPSource
 from sequor.source.sources.sql_source import SQLSource
 
 class Project:
-    def __init__(self, instance: Instance, env: Environment, project_dir: Path):
-        self.instance = instance
+    def __init__(self, env: Environment, project_dir: Path): # instance: Instance,
+        self.yaml = YAML()
+        self.yaml.preserve_quotes = True 
+        # self.instance = instance
+
         self.env = env
         self.project_dir = project_dir
         self.flows_dir = os.path.join(project_dir, "flows")
@@ -45,7 +46,7 @@ class Project:
             raise UserError(f"Project configuration file does not exist: {project_def_file}")
 
         with open(project_def_file, 'r') as f:
-            project_def = yaml.load(f)
+            project_def = self.yaml.load(f)
             self.project_name = project_def.get('name')
             if self.project_name is None:
                 raise UserError(f"Project configuration file does not contain 'name' field: {project_def_file}")
@@ -53,7 +54,8 @@ class Project:
 
      
 
-        self.project_state_dir = instance.get_project_state_dir() / self.project_name
+        # self.project_state_dir = instance.get_project_state_dir() / self.project_name
+        self.project_state_dir = project_dir / self.project_name
         self.project_vars_file = os.path.join(self.project_state_dir, "variables.yaml")
         
     def get_source(self, source_name: str) -> Any:
@@ -67,7 +69,7 @@ class Project:
 
         # Load and parse the flow
         with open(source_file, 'r') as f:
-            source_def = yaml.load(f)
+            source_def = self.yaml.load(f)
         source = create_source(self, source_name, source_def)
         return source
     
@@ -89,7 +91,7 @@ class Project:
         # Load and parse the flow
         try:
             with open(flow_file, 'r') as f:
-                flow_def = yaml.load(f)
+                flow_def = self.yaml.load(f)
         except Exception as e:
             raise UserError(f"Error loading flow definition: {e}")
         
@@ -134,7 +136,7 @@ class Project:
         
         # Load and parse the flow
         with open(spec_file, 'r') as f:
-            spec_def = yaml.load(f)
+            spec_def = self.yaml.load(f)
         
         return spec_def
     
@@ -142,7 +144,7 @@ class Project:
         # Read current data
         try:
             with open(self.project_vars_file, 'r') as f:
-                vars = yaml.load(f) or {}
+                vars = self.yaml.load(f) or {}
         except (FileNotFoundError):  
             # Ensure the directory for the variables file exists. We will create the file later when we write the variable
             project_vars_dir = os.path.dirname(self.project_vars_file)
@@ -157,7 +159,7 @@ class Project:
         fd, temp_path = tempfile.mkstemp(dir=dir_path or '.')
         try:
             with os.fdopen(fd, 'w') as f:
-                yaml.dump(vars, f)
+                self.yaml.dump(vars, f)
             os.replace(temp_path, self.project_vars_file)
         except Exception:
             # Clean up the temp file if something goes wrong
@@ -169,7 +171,7 @@ class Project:
         # Try to read the variables file
         try:
             with open(self.project_vars_file, 'r') as f:
-                vars = yaml.load(f) or {}
+                vars = self.yaml.load(f) or {}
                 
             # Return the variable value if it exists, otherwise return default_value
             return vars.get(var_name) # None if the variable is not set

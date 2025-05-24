@@ -41,4 +41,6 @@ class TransformOp(Op):
             print(f"Executing: {createTableSql}")
             conn.execute_update(createTableSql)
     
-        logger.info(f"Finished \"{self.get_title()}\"")
+        # logger.info(f"Finished \"{self.get_title()}\"")
+        context.add_to_log_op_finished(
+            logger, f"Finished \"" + self.get_title() + "\"")

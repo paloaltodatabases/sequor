@@ -371,4 +371,5 @@ class HTTPRequestOp(Op):
             finally:
                 self.data_loader.close()
 
-        logger.info(f"Finished \"" + self.get_title() + "\"")
+        # logger.info(f"Finished \"" + self.get_title() + "\"")
+        context.add_to_log_op_finished(logger, f"Finished \"" + self.get_title() + "\"")

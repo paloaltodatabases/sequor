@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sequor"
 dynamic = ["version"]
-description = "SQL-centric API integration platform - unifying apps and data connectivity"
+description = "SQL-centric API integration platform"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 classifiers = [
