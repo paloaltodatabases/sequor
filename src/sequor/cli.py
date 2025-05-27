@@ -111,10 +111,10 @@ def run(
     op_id: str = typer.Option(None, "--op-id", help="ID of the operation to run"),
 
     # http_request op specific options
-    debug_foreach_record: str = typer.Option(None, "--debug-foreach-record", help="Run with a test for_each record specified as JSON object (or records if batching is enabled as JSON array). The record(s) should match the structure expected by the operation. Example: --debug-test-record='{\"email\":\"test@example.com\"}'"),
-    debug_request_preview_trace: bool = typer.Option(False, "--debug-request-preview-trace", help="Run only HTTP request part and show HTTP request trace", is_flag=True),
-    debug_request_preview_pretty: bool = typer.Option(False, "--debug-request-preview-pretty", help="Run only HTTP request part and show pretty trace", is_flag=True),
-    debug_response_parser_preview: bool = typer.Option(False, "--debug-response-parser-preview", help="Show parser result without applying it", is_flag=True),
+    debug_foreach_record: str = typer.Option(None, "--debug-httprequest-foreach-test-record", help="Run with a test for_each record specified as JSON object (or records if batching is enabled as JSON array). The record(s) should match the structure expected by the operation. Example: --debug-test-record='{\"email\":\"test@example.com\"}'"),
+    debug_request_preview_trace: bool = typer.Option(False, "--debug-httprequest-preview-trace", help="Run only HTTP request part and show HTTP request trace", is_flag=True),
+    debug_request_preview_pretty: bool = typer.Option(False, "--debug-httprequest-preview-pretty", help="Run only HTTP request part and show pretty trace", is_flag=True),
+    debug_response_parser_preview: bool = typer.Option(False, "--debug-httprequest-response-parser-preview", help="Show parser result without applying it", is_flag=True),
 ):
     logger = logging.getLogger("sequor.cli")
     try:
@@ -211,14 +211,15 @@ if __name__ == "__main__":
 
 
     # sequor-integrations tests
-    sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    # sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
 
 
     # Utility
     # sys.argv = ["cli.py", "run", "bigcommerce_delete_all_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers_simple", "--op-id", "get_customers", "--debug-request-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
-    # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--debug-foreach-record", '{"id":"1", "first_name":"Bob", "last_name": "brown", "email":"bob@brown1.net"}', "--debug-request-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    sys.argv = ["cli.py", "run", "github_repo_health", "--op-id", "get_repos", "--debug-httprequest-preview-trace", "--stacktrace",
+                "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--debug-httprequest-foreach-test-record", '{"id":"1", "first_name":"Bob", "last_name": "brown", "email":"bob@brown1.net"}', "--debug-httprequest-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
 
  
