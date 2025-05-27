@@ -1,3 +1,4 @@
+from typing import Union
 from sequor.source.model import Model
 from sequor.source.row import Row
 from sequor.source.source import Source
@@ -20,7 +21,7 @@ class Connection:
     def execute_update(self, query: str):
         raise NotImplementedError("Subclasses must implement execute_update()")
     
-    def open_table_for_insert(self, table_addr: TableAddress, model: Model | None = None):
+    def open_table_for_insert(self, table_addr: TableAddress, model: Union[Model, None] = None):
         raise NotImplementedError("Subclasses must implement open_table_for_insert()")
     def insert_row(self, row: Row):
         raise NotImplementedError("Subclasses must implement insert_record()")

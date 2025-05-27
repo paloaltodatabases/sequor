@@ -14,6 +14,7 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 requires-python = ">=3.9"
+# psycopg2-binary 2.9.10 cannot be installed with python 3.9
 dependencies = [
     "pyyaml>=6.0.2",
     "jinja2>=3.1.6",
@@ -23,7 +24,7 @@ dependencies = [
     "requests>=2.32.3",
     "requests-toolbelt>=1.0.0",
     "authlib>=1.5.2",
-    "psycopg2-binary>=2.9.10",
+    "psycopg2-binary>=2.9.0,<2.9.10", 
     "duckdb-engine>=0.17.0",
     "posthog>=4.0.0"
 ]

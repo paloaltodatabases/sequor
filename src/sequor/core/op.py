@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type, ClassVar
+from typing import Any, Dict, List, Type, ClassVar, Union
 
 from sequor.common.common import Common
 from sequor.common.executor_utils import UserContext, load_user_function, render_jinja
@@ -74,6 +74,6 @@ class Op:
     def get_child_blocks(self) -> List[Dict[str, List['Op']]]:
         return []
     
-    def get_id(self) -> str | None:
+    def get_id(self) -> Union[str, None]:
         id = self.op_def.get('id')
         return id

@@ -205,20 +205,21 @@ def main():
     app()
 
 if __name__ == "__main__":
+    # sys.argv = ["cli.py", "version"]
+
     # sys.argv = ["cli.py", "--help"]
     # sys.argv = ["cli.py", "env", "init", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "init", "~/myprogs/sequor-misc123", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
 
 
     # sequor-integrations tests
-    # sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
 
 
     # Utility
     # sys.argv = ["cli.py", "run", "bigcommerce_delete_all_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
-    sys.argv = ["cli.py", "run", "github_repo_health", "--op-id", "get_repos", "--debug-httprequest-preview-trace", "--stacktrace",
-                "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    # sys.argv = ["cli.py", "run", "github_repo_health", "--op-id", "get_repos", "--debug-httprequest-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--debug-httprequest-foreach-test-record", '{"id":"1", "first_name":"Bob", "last_name": "brown", "email":"bob@brown1.net"}', "--debug-httprequest-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
 
 

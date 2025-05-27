@@ -55,7 +55,7 @@ class Job:
                         index_name = "step" if entry.flow_step_index_name is None else entry.flow_step_index_name
                         index_str = f"{index_name} {entry.flow_step_index + 1} "
                     location = f" [{index_str}in {entry.flow_type_name}{flow_name_str}]"
-                log_str = f"{indent}{"-> " if i > 0 else ""}\"{entry.op_title}\"{location}"
+                log_str = f"{indent}{'-> ' if i > 0 else ''}\"{entry.op_title}\"{location}"
                 job_stacktrace_lines.append(log_str)
 
             job_stacktrace = Common.get_exception_traceback()

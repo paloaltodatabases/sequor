@@ -1,8 +1,8 @@
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 
 class DataType:
-    def __init__(self, name: str, precision: int | None = None, scale: int | None = None):
+    def __init__(self, name: str, precision: Union[int, None] = None, scale: Union[int, None] = None):
         self.name = name
         self.precision = precision
         self.scale = scale

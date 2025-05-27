@@ -1,3 +1,4 @@
+from typing import Union
 from sqlalchemy import MetaData, Table, create_engine, text
 
 from sequor.source.column import Column
@@ -55,7 +56,7 @@ class DuckDBConnection(SQLConnection):
         self.conn.execute(text(query))
         self.conn.commit()
 
-    def open_table_for_insert(self, table_addr: TableAddress, model: Model | None = None, autocommit: bool = False):
+    def open_table_for_insert(self, table_addr: TableAddress, model: Union[Model, None] = None, autocommit: bool = False):
         self.open_table_for_insert_table_addr = table_addr
         if model is not None:
             self.open_table_for_insert_model = model
