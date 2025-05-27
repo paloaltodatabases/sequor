@@ -12,6 +12,7 @@ from sequor.core.user_error import UserError
 class Environment:
     def __init__(self, env_name: str, home_dir):  # instance: Instance,
         self.env_name = env_name
+        self.home_dir = home_dir
         # self.instance = instance
 
         # home_dir = instance.get_home_dir()

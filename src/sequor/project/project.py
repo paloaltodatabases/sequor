@@ -51,11 +51,8 @@ class Project:
             if self.project_name is None:
                 raise UserError(f"Project configuration file does not contain 'name' field: {project_def_file}")
             # self.project_version = project_def.get('version')
-
      
-
-        # self.project_state_dir = instance.get_project_state_dir() / self.project_name
-        self.project_state_dir = project_dir / self.project_name
+        self.project_state_dir = env.home_dir / "project_state" / self.project_name
         self.project_vars_file = os.path.join(self.project_state_dir, "variables.yaml")
         
     def get_source(self, source_name: str) -> Any:
