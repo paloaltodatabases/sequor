@@ -8,11 +8,11 @@ With Sequor's code-first approach (YAML for flows, Jinja or Python for dynamic p
 **Own**, **control**, and **scale** your integrations with transparent configuration, familiar open technologies, and without SaaS lock-in.
 
 # How Sequor works
-Sequor is designed around an intuitive YAML-based workflow definition. Every integration  flow is built from these powerful components:
+Sequor is designed around an intuitive YAML-based workflow definition. Every integration  flow is built from these powerful operations:
 
-* http_request - Execute API calls with database integration that iterates over input records, performs dynamic HTTP requests, and maps responses back to database tables. Use Jinja templates or Python snippets for dynamic parameterization.
-* transform - Apply SQL queries to prepare data for API calls or process API results, leveraging the full power of your database for data manipulation.
-* control statements - Build robust workflows with if-then-else conditionals, while loops, try-catch error handling, and more. These high-level orchestration capabilities ensure your integrations handle edge cases gracefully without custom code.
+* **http_request** - Execute API calls with database integration that iterates over input records, performs dynamic HTTP requests, and maps responses back to database tables. Use Jinja templates or Python snippets for dynamic parameterization.
+* **transform** - Apply SQL queries to prepare data for API calls or process API results, leveraging the full power of your database for data manipulation.
+* **control statements** - Build robust workflows with if-then-else conditionals, while loops, try-catch error handling, and more. These high-level orchestration capabilities ensure your integrations handle edge cases gracefully without custom code.
 
 ## Example 1 - Data acquisition: Load BigCommerce customers into database
 ```
