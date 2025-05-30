@@ -179,14 +179,14 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ## Example 5: Orchestrate complex worflows with procedural statements
 ```
 - op: if
-    conditions:
-      - condition: '{{ query_value("select count(*) from inventory_to_update", int) > 0 }}'
-        then:
-          - op: run_workflow
-            flow: "update_inventory"
-    else:
-      - op: print
-        message: "Inventory is up to date"
+  conditions:
+    - condition: '{{ query_value("select count(*) from inventory_to_update", int) > 0 }}'
+      then:
+        - op: run_workflow
+          flow: "update_inventory"
+  else:
+    - op: print
+      message: "Inventory is up to date"
 ```
 
 
