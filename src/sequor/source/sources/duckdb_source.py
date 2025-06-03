@@ -9,8 +9,8 @@ from sequor.source.table_address import TableAddress
 
 class DuckDBSource(SQLSource):
     """Class representing a SQL data source"""
-    def __init__(self, project: 'Project', name: str,  source_def: Dict[str, Any]):
-        super().__init__(project, name, source_def) 
+    def __init__(self, context: 'Context', name: str,  source_def: Dict[str, Any]):
+        super().__init__(context, name, source_def)
         source_rendered_def = self.get_rendered_def()
         self.connStr = source_rendered_def.get('conn_str')
     

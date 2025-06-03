@@ -6,6 +6,6 @@ from sequor.source.sources.sql_connection import SQLConnection
 from sequor.source.table_address import TableAddress
 
 class HTTPSource(Source):
-    def __init__(self, project: 'Project', name: str,  source_def: Dict[str, Any]):
-        super().__init__(project, name, source_def) 
+    def __init__(self, context: 'Context', name: str,  source_def: Dict[str, Any]):
+        super().__init__(context, name, source_def)
     

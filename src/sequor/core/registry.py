@@ -9,15 +9,15 @@ from sequor.source.sources.http_source import HTTPSource
 from sequor.source.sources.sql_source import SQLSource
 
 
-def create_source(self, source_name: str, source_def: Dict[str, Any]) -> Any:
+def create_source(context: 'Context', source_name: str, source_def: Dict[str, Any]) -> Any:
     source: Source = None
     source_type = source_def.get('type')
     if source_type == 'http':
-        source = HTTPSource(self, source_name, source_def)
+        source = HTTPSource(context, source_name, source_def)
     elif source_type == 'postgres':
-        source = SQLSource(self, source_name, source_def)
+        source = SQLSource(context, source_name, source_def)
     elif source_type == 'duckdb':
-        source = DuckDBSource(self, source_name, source_def)
+        source = DuckDBSource(context, source_name, source_def)
     else:
         raise ValueError(f"Unknown source type: {source_type}")
     return source

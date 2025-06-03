@@ -21,7 +21,7 @@ from authlib.integrations.requests_client import OAuth2Session
 
 
 class HTTPRequestParameters:
-    def __init__(self, auth_handler, oauth_session, url, method, parameters, headers, body_format, body, parse_response_fun):
+    def __init__(self, auth_handler, oauth_session, url, method, parameters, headers, body_format, body, success_status, target_table_addrs, parse_response_fun):
         self.auth_handler = auth_handler
         self.oauth_session = oauth_session
         self.url = url
@@ -30,6 +30,8 @@ class HTTPRequestParameters:
         self.headers = headers
         self.body = body
         self.body_format = body_format
+        self.success_status = success_status
+        self.target_table_addrs = target_table_addrs
         self.parse_response_fun = parse_response_fun
 
 
@@ -205,25 +207,67 @@ class HTTPRequestOp(Op):
     def _make_request(self, context, http_req_params: HTTPRequestParameters, op_options: Dict[str, Any], logger: logging.Logger):
         while True:
             response = self._make_request_helper(context, http_req_params, op_options, logger)
-            
-            response_parsed = http_req_params.parse_response_fun.apply(UserContext(context),response)
 
-            # set returned variables
-            for name, value_def in response_parsed.get('variables', {}).items():
-                set_variable_from_def(context, name, value_def)
+            if http_req_params.success_status is not None:
+                if response.status_code not in http_req_params.success_status:
+                    raise UserError(f"HTTP request failed with unexpected status code: {response.status_code}. Expected status codes: {http_req_params.success_status}. Response body: {response.text}")            
 
-            # load returned tables
-            tables_def = response_parsed.get('tables', [])
-            self.data_loader.run(tables_def)
+            while_def = False
+            if http_req_params.parse_response_fun is not None:
+                # parse response
+                response_parsed = http_req_params.parse_response_fun.apply(UserContext(context), response)
 
-            while_def = response_parsed.get('while', [])
-            if while_def:
+                # preprocess target table definitions: 
+                # target tables are created inside the loader get_connection() method, it means that they will not be created without the response parser
+                tables_def = response_parsed.get('tables')
+                tables_to_load = []
+                if http_req_params.target_table_addrs is not None:
+                    if tables_def is None or not isinstance(tables_def, dict):
+                        raise UserError("Response parser must return data as a dictionary for 'tables' defined in the response.tables section of this http_request op: " + str(tables_def))
+                    # if not isinstance(tables_def, dict):
+                    #     raise UserError("Response parser must return data for 'tables' as a dictionary because tables are defined in the response.tables section of this http_request op: " + str(tables_def))
+                    # Check that all required tables have data
+                    for table_addr in http_req_params.target_table_addrs:
+                        if table_addr.table_name not in tables_def:
+                            raise UserError(f"Data for the target table {table_addr.table_name} not found in the result returned by the HTTP response parser.")
+                    # Check that no extra tables were returned
+                    for table_name in tables_def:
+                        if not any(table_addr.table_name == table_name for table_addr in http_req_params.target_table_addrs):
+                            raise UserError(f"Unexpected table '{table_name}' found in the result returned by the HTTP response parser. This table was not defined in the response.tables section of this http_request op.")
+                    # tables to load
+                    for table_addr in http_req_params.target_table_addrs:
+                        table_addr_clone = table_addr.clone()
+                        table_addr_clone.data = tables_def.get(table_addr.table_name)
+                        tables_to_load.append(table_addr_clone)
+                else:
+                    # response parser can still return tables as array
+                    if tables_def is not None:
+                        if not isinstance(tables_def, list):
+                            raise UserError("Response parser must return 'tables' as array if no tables are defined in the response.tables section of this http_request op: " + str(tables_def))
+                        for table_def in tables_def:
+                            table_model_def = table_def.get('model')
+                            if table_model_def is None:
+                                table_columns_def = table_def.get('columns')
+                                if table_columns_def is not None:
+                                    table_model_def = {"columns": table_columns_def}
+                            table_addr_from_def = TableAddress(table_def.get('source'), table_def.get('database'), table_def.get('namespace'), table_def.get('table'),
+                                                               table_model_def, table_def.get('data'), table_def.get('write_mode'))
+                            tables_to_load.append(table_addr_from_def)
+
+                # load tables    
+                self.data_loader.run(context, tables_to_load)
+
+                # set returned variables
+                for name, value_def in response_parsed.get('variables', {}).items():
+                    set_variable_from_def(context, name, value_def)
+
+                while_def = response_parsed.get('while', False)
                 if not isinstance(while_def, bool):
-                    raise UserError("\"while\" in the result of the response parser must be a boolean")
-                if not while_def:
-                    break
-            else:
+                    raise UserError("\"while\" in the result of the response parser must be a boolean: " + str(while_def))
+            
+            if not while_def:
                 break
+
 
 
     def run(self, context, op_options: Dict[str, Any]):
@@ -238,7 +282,7 @@ class HTTPRequestOp(Op):
         request_def = Op.get_parameter(context, self.op_def, 'request', is_required=True)
         http_source_name = Op.get_parameter(context, request_def, 'source', is_required=False) # at this point context is equal to parent_context which is what we want
         if http_source_name:
-            http_source = self.proj.get_source(http_source_name)
+            http_source = self.proj.get_source(context, http_source_name)
             variables_def = http_source.source_def.get("variables");
             if variables_def:
                 for var_name, var_value in variables_def.items():
@@ -248,7 +292,7 @@ class HTTPRequestOp(Op):
         # render http source def in the context extended with source variable 
         # because source properties can contain references to the variables
         if http_source_name:
-            http_source_def = http_source.get_rendered_def(context)
+            http_source_def = http_source.get_rendered_def()
         # self.op_def = render_jinja(context, self.op_def)
 
         # Extract input def (rendered)
@@ -262,8 +306,8 @@ class HTTPRequestOp(Op):
                 foreach_database_name = Op.get_parameter(context, foreach_def, 'database', is_required=False, render=3)
                 foreach_namespace_name = Op.get_parameter(context, foreach_def, 'namespace', is_required=False, render=3)
                 foreach_table_name = Op.get_parameter(context, foreach_def, 'table', is_required=True, render=3, location_desc=location_desc)
-                foreach_table_addr = TableAddress(foreach_database_name, foreach_namespace_name, foreach_table_name)
-                return foreach_source_name, foreach_table_addr
+                foreach_table_addr = TableAddress(foreach_source_name,foreach_database_name, foreach_namespace_name, foreach_table_name)
+                return foreach_table_addr
             foreach_var_name = Op.get_parameter(context, foreach_def, 'as', is_required=True, render=3, location_desc=location_desc)
         else:
             foreach_table_addr = None
@@ -282,20 +326,44 @@ class HTTPRequestOp(Op):
         # Extract response def
         # todo: do we have any use case when we need to render=2. In this case ninja can be used to dinamically set targer_table_addr -> danger: DataLoader will open too many connections!
         response_def = self.op_def.get('response', {})
+        success_status = Op.get_parameter(context, response_def, 'success_status', is_required=False, render=3)
+        if success_status is not None and not isinstance(success_status, list):
+            raise UserError(f"success_status must be a list of integers: {success_status}")
         target_source_name = Op.get_parameter(context, response_def, 'source', is_required=False, render=3)
         target_database_name = Op.get_parameter(context, response_def, 'database', is_required=False, render=3)
         target_namespace_name = Op.get_parameter(context, response_def, 'namespace', is_required=False, render=3)
         target_table_name = Op.get_parameter(context, response_def, 'table', is_required=False, render=3)
-        target_table_addr = TableAddress(target_database_name, target_namespace_name, target_table_name)
+        target_tables_def = Op.get_parameter(context, response_def, 'tables', is_required=False, render=3)
+        # target_table_addr = TableAddress(target_database_name, target_namespace_name, target_table_name)
+        target_table_addrs = None
+        if target_tables_def:
+            target_table_addrs = []
+            for table_def in target_tables_def:
+                table_source_name = table_def.get('source')
+                table_database_name = table_def.get('database')
+                table_namespace_name = table_def.get('namespace')
+                table_table_name = table_def.get('table')
+                table_model_def = table_def.get('model')
+                if table_model_def is None:
+                    table_columns_def = table_def.get('columns')
+                    if table_columns_def is not None:
+                        table_model_def = {"columns": table_columns_def}               
+                write_mode = table_def.get('write_mode')
+                table_addr = TableAddress(table_source_name or target_source_name, table_database_name or target_database_name, table_namespace_name or target_namespace_name, 
+                                          table_table_name or target_table_name, table_model_def, write_mode)
+                target_table_addrs.append(table_addr)
+
         # Compile parser response function code
         parser = response_def.get('parser')
         # todo: do we have any use case to allow non-expression parser?
         if parser:
             raise UserError("parser is not supported. Use parser_expression instead")
+        parse_response_fun = None
         parse_response_expression = response_def.get('parser_expression')
-        parse_response_expression_line = Common.get_line_number(response_def, 'parser_expression')
-        parse_response_fun_compiled = load_user_function(parse_response_expression, "parser_expression", parse_response_expression_line)
-        parse_response_fun = UserFunction(parse_response_fun_compiled, parse_response_expression_line)
+        if parse_response_expression is not None:
+            parse_response_expression_line = Common.get_line_number(response_def, 'parser_expression')
+            parse_response_fun_compiled = load_user_function(parse_response_expression, "parser_expression", parse_response_expression_line, function_params_def="context, response")
+            parse_response_fun = UserFunction(parse_response_fun_compiled, parse_response_expression_line)
 
         auth_handler = None
         oauth_session = None
@@ -332,8 +400,8 @@ class HTTPRequestOp(Op):
                     oauth_session = OAuth2PasswordFlowSession(authlib_session, http_source_auth_token_endpoint, http_source_auth_client_id, http_source_auth_client_secret, http_source_auth_username, http_source_auth_password)
             else:
                 raise UserError(f"Unsupported auth type: {http_source_auth_type}")
-
-        http_req_params = HTTPRequestParameters(auth_handler, oauth_session, url, method, parameters, headers, body_format, body, parse_response_fun)
+        
+        http_req_params = HTTPRequestParameters(auth_handler, oauth_session, url, method, parameters, headers, body_format, body, success_status, target_table_addrs, parse_response_fun)
 
 
         if op_options.get("debug_foreach_record") or op_options.get("debug_request_preview_trace") or op_options.get("debug_request_preview_pretty"):
@@ -352,13 +420,13 @@ class HTTPRequestOp(Op):
             else:
                 self._make_request(context, http_req_params, op_options, logger)
         else:
-            self.data_loader = DataLoader(self.proj, target_source_name, target_table_addr)
+            self.data_loader = DataLoader(self.proj)
             try:
                 if foreach_def is None:
                     self._make_request(context, http_req_params, op_options, logger)
                 else:
-                    foreach_source_name, foreach_table_addr = parse_foreach_def()
-                    foreach_source = self.proj.get_source(foreach_source_name)
+                    foreach_table_addr = parse_foreach_def()
+                    foreach_source = self.proj.get_source(context,foreach_table_addr.source_name)
                     with foreach_source.connect() as conn:
                         conn.open_table_for_read(foreach_table_addr)
                         foreach_row_count = 0

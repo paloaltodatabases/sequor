@@ -56,7 +56,7 @@ class ExecuteOp(Op):
                 "Missing 'go' command after the last statement. Each statement must be followed by a 'go' command on its own line."
             )
     
-        source = self.proj.get_source(source_name)
+        source = self.proj.get_source(context, source_name)
         with source.connect() as conn:
             for stmt in statements:
                 if stmt.strip() == "": # Skip emty statements (muliple go comands in a row) and the empty statement after the last go

@@ -5,17 +5,17 @@ from sequor.core.context import Context
 from sequor.source.table_address import TableAddress
 
 class Source:
-    def __init__(self, project: 'Project', name: str, source_def: Dict[str, Any]):
-        self.project = project
+    def __init__(self, context: 'Context', name: str, source_def: Dict[str, Any]):
+        self.context = context
         self.name = name 
         self.source_def = source_def
         self.source_rendered_def = None
 
-    def get_rendered_def(self, context: Context = None):
+    def get_rendered_def(self):
         if self.source_rendered_def is None:
-            if context is None:
-                context = Context.from_project(self.project)
-            self.source_rendered_def = render_jinja(context, self.source_def)
+            # if context is None:
+            #     context = Context.from_project(self.project)
+            self.source_rendered_def = render_jinja(self.context, self.source_def)
         return self.source_rendered_def
 
     def connect(self):

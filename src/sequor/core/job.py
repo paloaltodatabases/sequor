@@ -28,7 +28,7 @@ class Job:
 
     # logger: logging.Logger,
     def run(self, op_options: Dict[str, Any]):
-        context = Context(self.project, self)
+        context = Context(self.env, self.project, self)
         try:
             self.run_op(context, self.op, op_options)
         except Exception as e:

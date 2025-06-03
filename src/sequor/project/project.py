@@ -5,8 +5,9 @@ import tempfile
 # import yaml
 from ruamel.yaml import YAML
 
-from sequor.core.environment import Environment
+# from sequor.core.environment import Environment
 # from sequor.core.instance import Instance
+from sequor.core.context import Context
 from sequor.core.registry import create_op, create_source
 from sequor.operations.block import BlockOp
 from sequor.operations.execute import ExecuteOp
@@ -29,12 +30,13 @@ from sequor.source.sources.http_source import HTTPSource
 from sequor.source.sources.sql_source import SQLSource
 
 class Project:
-    def __init__(self, env: Environment, project_dir: Path): # instance: Instance,
+    def __init__(self, project_dir: Path, home_dir):  # instance: Instance, env: Environment,
         self.yaml = YAML()
         self.yaml.preserve_quotes = True 
         # self.instance = instance
 
-        self.env = env
+        # self.env = env
+        self.home_dir = home_dir
         self.project_dir = project_dir
         self.flows_dir = os.path.join(project_dir, "flows")
         self.sources_dir = os.path.join(project_dir, "sources")
@@ -52,10 +54,10 @@ class Project:
                 raise UserError(f"Project configuration file does not contain 'name' field: {project_def_file}")
             # self.project_version = project_def.get('version')
      
-        self.project_state_dir = env.home_dir / "project_state" / self.project_name
+        self.project_state_dir = self.home_dir / "project_state" / self.project_name
         self.project_vars_file = os.path.join(self.project_state_dir, "variables.yaml")
         
-    def get_source(self, source_name: str) -> Any:
+    def get_source(self, context: Context, source_name: str) -> Any:
         # Construct flow file path
         source_file = os.path.join(self.sources_dir, f"{source_name}.yaml")
 
@@ -67,7 +69,7 @@ class Project:
         # Load and parse the flow
         with open(source_file, 'r') as f:
             source_def = self.yaml.load(f)
-        source = create_source(self, source_name, source_def)
+        source = create_source(context, source_name, source_def)
         return source
     
     # @classmethod
