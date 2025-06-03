@@ -37,7 +37,7 @@ class UserSourcesAPI:
         self.user_context = user_context
     
     def query(self, source_name: str, query: str, database_name: str = None, namespace_name: str = None):
-        source = self.context.project.get_source(source_name)
+        source = self.context.project.get_source(self.context, source_name)
         result = []
         with source.connect() as conn:
             conn.open_query(query)
@@ -64,7 +64,7 @@ class UserContext:
         return value
     
     def query(self, source_name: str, query: str, database_name: str = None, spacename_name: str = None):
-        source = self.proj.get_source(source_name)
+        source = self.proj.get_source(self.context, source_name)
         result = []
         with source.connect() as conn:
             conn.open_query(query)
@@ -154,13 +154,15 @@ def get_restricted_builtins():
     ]
     return {name: getattr(builtins, name) for name in safe_builtin_names}
 
-def user_function_error_message(e: Exception, key_name: str, line_in_code: int, line_in_yaml: int, prefix: str = "Error"):
+def user_function_error_message(e: Exception, key_name: str, line_in_code: int, line_in_yaml: int, auto_wrapped: bool, prefix: str = "Error"):
+    if auto_wrapped:
+        line_in_code = line_in_code - 1
     position_in_code = f"line {line_in_code} of code, " if line_in_code else ""
     absolute_line_in_yaml = line_in_yaml + line_in_code if line_in_code else line_in_yaml
     error_msg = f"{prefix} in {key_name} ({position_in_code}line {absolute_line_in_yaml} in YAML): {type(e).__name__}: {str(e)}"
     return error_msg
 
-def load_user_function(function_code: str, key_name: str, line_in_yaml: int, function_name: str = "evaluate", extra_globals=None):
+def load_user_function(function_code: str, key_name: str, line_in_yaml: int, function_params_def: str = "context", function_name: str = "evaluate", extra_globals=None):
     """
     Compile and safely execute user-defined Python function from string.
     
@@ -169,6 +171,12 @@ def load_user_function(function_code: str, key_name: str, line_in_yaml: int, fun
     :param extra_globals: Optional dictionary of additional safe global objects (eg. json)
     :return: Callable function
     """
+    auto_wrapped = False
+    if not function_code.strip().startswith("def evaluate"):
+        auto_wrapped = True
+        # Properly indent the function body with 4 spaces
+        indented_body = '\n'.join('    ' + line for line in function_code.splitlines())
+        function_code = f"def evaluate({function_params_def}):\n{indented_body}"
 
     # Compile the code first to catch syntax errors
     try:
@@ -176,7 +184,7 @@ def load_user_function(function_code: str, key_name: str, line_in_yaml: int, fun
     except SyntaxError as e:
         line_in_code = e.lineno
         pure_msg = e.msg
-        raise UserError(user_function_error_message(SyntaxError(pure_msg), key_name, line_in_code, line_in_yaml, "Syntax error"))
+        raise UserError(user_function_error_message(SyntaxError(pure_msg), key_name, line_in_code, line_in_yaml, auto_wrapped, "Syntax error"))
        
 
     # Setup sandboxed globals
@@ -209,17 +217,18 @@ def load_user_function(function_code: str, key_name: str, line_in_yaml: int, fun
             new_exc.__traceback__ = e.__traceback__
             raise new_exc
         # raise RuntimeError(f"Error executing user code in {key_name}: {e}")
-        raise UserError(user_function_error_message(e, key_name, None, line_in_yaml, "Error"))
+        raise UserError(user_function_error_message(e, key_name, None, line_in_yaml, auto_wrapped, "Error"))
 
     # Retrieve the function object
     user_function = local_namespace.get(function_name)
     if not user_function:
         fun_not_defined_error = UserError(f"Function {function_name} not found in user code")
-        raise UserError(user_function_error_message(fun_not_defined_error, key_name, None, line_in_yaml, "Error"))
+        raise UserError(user_function_error_message(fun_not_defined_error, key_name, None, line_in_yaml, auto_wrapped, "Error"))
 
     # Attach the source code and filename to the function for better error reporting
     user_function.__source_code__ = function_code
     user_function.__filename__ = key_name
+    user_function.__auto_wrapped__ = auto_wrapped
 
     return user_function
 
@@ -247,7 +256,7 @@ class UserFunction:
             if user_frame:
                 # Format error with line information from the user's code
                 # error_msg = f"Error in {self.fun.__filename__} (line {user_frame.lineno} of code, line {self.line_in_yaml} in YAML): {type(e).__name__}: {str(e)}"
-                error_msg = user_function_error_message(e, self.fun.__filename__, user_frame.lineno, self.line_in_yaml, "Error")
+                error_msg = user_function_error_message(e, self.fun.__filename__, user_frame.lineno, self.line_in_yaml, self.fun.__auto_wrapped__, "Error")
                 new_exc = UserError(error_msg)
                 # Preserve the original traceback
                 new_exc.__traceback__ = e.__traceback__

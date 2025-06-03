@@ -32,6 +32,9 @@ dependencies = [
 [tool.setuptools.dynamic]
 version = {attr = "sequor._version.__version__"}  # Get version from _version.py
 
+[tool.autopep8]
+max_line_length = 1000
+
 [project.urls]
 "Homepage" = "https://sequor.dev/"
 "GitHub" = "https://github.com/paloaltodatabases/sequor"

@@ -10,7 +10,8 @@ from sequor.core.variable_bindings import VariableBindings
 
 
 class Context:
-    def __init__(self, project: 'Project', job: 'Job'):
+    def __init__(self, env: 'Environment', project: 'Project', job: 'Job'):
+        self.env = env
         self.project = project
         self.cur_execution_stack_entry = None
         self.job = job
@@ -30,7 +31,7 @@ class Context:
         return cls(project, None)
 
     def clone(self):
-        new_context = Context(self.project, self.job)
+        new_context = Context(self.env, self.project, self.job)
         new_context.variables = self.variables
         new_context.cur_execution_stack_entry = self.cur_execution_stack_entry
         new_context.flow_type_name = self.flow_type_name
@@ -51,7 +52,7 @@ class Context:
         if value is None:
             value = self.project.get_variable_value(name)
         if value is None:
-            value = self.project.env.get_variable_value(name)
+            value = self.env.get_variable_value(name)
         return value
     
     def set_flow_info(self, flow_type_name: str, flow_name: str):

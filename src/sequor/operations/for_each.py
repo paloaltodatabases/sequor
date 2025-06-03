@@ -31,7 +31,7 @@ class ForEachOp(Op):
         database_name = Op.get_parameter(context, self.op_def, 'database', is_required=False, render=3)
         namespace_name = Op.get_parameter(context, self.op_def, 'namespace', is_required=False, render=3)
         table_name= Op.get_parameter(context, self.op_def, 'table', is_required=True, render=3)
-        table_address = TableAddress(database_name, namespace_name, table_name)
+        table_address = TableAddress(source_name, database_name, namespace_name, table_name)
         var_name= Op.get_parameter(context, self.op_def, 'as', is_required=True, render=3)
 
         steps_def = self.op_def.get('steps')
@@ -46,7 +46,7 @@ class ForEachOp(Op):
         new_context.set_flow_step_info(None)
 
         row_count = 0
-        self.source = self.proj.get_source(source_name)
+        self.source = self.proj.get_source(context,source_name)
         with self.source.connect() as conn:
             conn.open_table_for_read(table_address)
             row = conn.next_row()
