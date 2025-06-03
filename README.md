@@ -68,11 +68,10 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
           table: "bc_customers_inserted"
           columns: {id: "text", "source_id": "text", "first_name": "text", "last_name": "text", "email": "text"}
       parser_expression: |
-        // extract customer with newly generated customer ID
+        # extract customer with newly generated customer ID
         customers_created = response.json()['data'][0]
-        // add the source ID
+        # add the source ID
         customers_created['source_id'] = context.var("customer").get("id")
-        // store into database
         return {
           "tables": {  
             "bc_customers_inserted": [ customers_created ]
