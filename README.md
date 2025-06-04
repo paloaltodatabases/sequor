@@ -43,86 +43,86 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ## Example 2 - Reverse ETL: Create BigCommerce customers from a database table
 ```
 - op: http_request
-    id: create_customers
-    for_each:
-      source: "stage"
-      table: "bc_customers_to_insert"
-      as: customer
-    request:
-      source: "bigcommerce"
-      url: "https://api.bigcommerce.com/stores/{{ var('store_hash') }}/{{ var('api_version') }}/customers"
-      method: POST
-      headers:
-        "Content-Type": "application/json"
-      body_format: json
-      body_expression: |
-          return [{
-            "first_name": context.var("customer").get("first_name"),
-            "last_name": context.var("customer").get("last_name"),
-            "email": context.var("customer").get("email")
-          }]         
-    response:
-      success_status: [200]
-      tables: 
-        - source: "stage"
-          table: "bc_customers_inserted"
-          columns: {id: "text", "source_id": "text", "first_name": "text", "last_name": "text", "email": "text"}
-      parser_expression: |
-        # extract customer with newly generated customer ID
-        customers_created = response.json()['data'][0]
-        # add the source ID
-        customers_created['source_id'] = context.var("customer").get("id")
-        return {
-          "tables": {  
-            "bc_customers_inserted": [ customers_created ]
-          }
-        } 
+  id: create_customers
+  for_each:
+    source: "stage"
+    table: "bc_customers_to_insert"
+    as: customer
+  request:
+    source: "bigcommerce"
+    url: "https://api.bigcommerce.com/stores/{{ var('store_hash') }}/{{ var('api_version') }}/customers"
+    method: POST
+    headers:
+      "Content-Type": "application/json"
+    body_format: json
+    body_expression: |
+        return [{
+          "first_name": context.var("customer").get("first_name"),
+          "last_name": context.var("customer").get("last_name"),
+          "email": context.var("customer").get("email")
+        }]         
+  response:
+    success_status: [200]
+    tables: 
+      - source: "stage"
+        table: "bc_customers_inserted"
+        columns: {id: "text", "source_id": "text", "first_name": "text", "last_name": "text", "email": "text"}
+    parser_expression: |
+      # extract customer with newly generated customer ID
+      customers_created = response.json()['data'][0]
+      # add the source ID
+      customers_created['source_id'] = context.var("customer").get("id")
+      return {
+        "tables": {  
+          "bc_customers_inserted": [ customers_created ]
+        }
+      } 
 ```
 
 ## Example 3 - complex data handling: Map nested Shopify data into referenced tables
 ```
-  - op: http_request
-    id: get_customers
-    request:
-      source: "shopify"
-      url: "https://{{ var('store_name') }}.myshopify.com/admin/api/{{ var('api_version') }}/customers.json"
-      method: GET
-      headers:
-        "Accept": "application/json"
-    response:
-      success_status: [200]
-      tables: 
-        - source: "stage"
-          table: "shopify_customers"
-          columns: {
-            "id": "text", "first_name": "text", "last_name": "text", "email": "text"
-          }
-        - source: "stage"
-          table: "shopify_customer_addresses"
-          columns: {
-            "id": "text", "customer_id": "text", "address1": "text", "address2": "text",
-            "city": "text", "province": "text", "zip": "text", "country": "text"
-          }
-      parser_expression: |
-          customers = response.json()['customers']          
-          customer_addresses = []
-          for customer in customers:
+- op: http_request
+  id: get_customers
+  request:
+    source: "shopify"
+    url: "https://{{ var('store_name') }}.myshopify.com/admin/api/{{ var('api_version') }}/customers.json"
+    method: GET
+    headers:
+      "Accept": "application/json"
+  response:
+    success_status: [200]
+    tables: 
+      - source: "stage"
+        table: "shopify_customers"
+        columns: {
+          "id": "text", "first_name": "text", "last_name": "text", "email": "text"
+        }
+      - source: "stage"
+        table: "shopify_customer_addresses"
+        columns: {
+          "id": "text", "customer_id": "text", "address1": "text", "address2": "text",
+          "city": "text", "province": "text", "zip": "text", "country": "text"
+        }
+    parser_expression: |
+        customers = response.json()['customers']          
+        customer_addresses = []
+        for customer in customers:
+        
+          # flattening the nested object
+          customer['email_consent_state'] = customer['email_marketing_consent']['state'] 
+          customer['opt_in_level'] = customer['email_marketing_consent'].get('single_opt_in') 
           
-            # flattening the nested object
-            customer['email_consent_state'] = customer['email_marketing_consent']['state'] 
-            customer['opt_in_level'] = customer['email_marketing_consent'].get('single_opt_in') 
+          # extract nested list of addresses and add customer_id to each address for reference
+          for address in customer['addresses']:
+            address['customer_id'] = customer['id'] 
+            customer_addresses.append(address)
             
-            # extract nested list of addresses and add customer_id to each address for reference
-            for address in customer['addresses']:
-              address['customer_id'] = customer['id'] 
-              customer_addresses.append(address)
-              
-          return {
-            "tables": {  
-              "shopify_customers": customers,
-              "shopify_customer_addresses": customer_addresses
-            }
+        return {
+          "tables": {  
+            "shopify_customers": customers,
+            "shopify_customer_addresses": customer_addresses
           }
+        }
 ```
 
 ## Example 4: Run SQL to prepare API input, transform API responses, or build analytics table
