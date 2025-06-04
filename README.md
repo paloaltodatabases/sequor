@@ -15,7 +15,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 * **control statements** - Build robust workflows with if-then-else conditionals, while loops, try-catch error handling, and more. These high-level orchestration capabilities ensure your integrations handle edge cases gracefully without custom code.
 
 ## Example 1 - Data acquisition: Load BigCommerce customers into database
-```
+```yaml
 - op: http_request
   id: get_customers
   request:
@@ -41,7 +41,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ```
 
 ## Example 2 - Reverse ETL: Update Mailchimp custom fields with customer metrics from a database table
-```
+```yaml
 - op: http_request
   for_each:
     source: "postgres"
@@ -71,7 +71,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ```
 
 ## Example 3 - Complex data handling: Map nested Shopify data into referenced tables
-```
+```yaml
 - op: http_request
   id: get_customers
   request:
@@ -117,7 +117,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ```
 
 ## Example 4: Run SQL to prepare API input, transform API responses, or build analytics table
-```
+```yaml
 - op: transform
   source: postgres
   target_table: customer_order_analytics
@@ -141,7 +141,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ```
 
 ## Example 5: Orchestrate complex worflows with procedural statements
-```
+```yaml
 - op: if
   conditions:
     - condition: '{{ query_value("select count(*) from inventory_to_update", int) > 0 }}'
