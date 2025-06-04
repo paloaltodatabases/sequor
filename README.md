@@ -27,7 +27,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
   response:
     success_status: [200]
     tables: 
-      - source: "stage"
+      - source: "postgres"
         table: "bc_customers"
         columns: {"id": "text", "first_name": "text", "last_name": "text"}
     parser_expression: |
@@ -40,46 +40,37 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
         }
 ```
 
-## Example 2 - Reverse ETL: Create BigCommerce customers from a database table
+## Example 2 - Reverse ETL: Update Mailchimp custom fields with customer metrics from a database table
 ```
 - op: http_request
-  id: create_customers
   for_each:
-    source: "stage"
-    table: "bc_customers_to_insert"
+    source: "postgres"
+    table: "customer_metrics"
     as: customer
   request:
-    source: "bigcommerce"
-    url: "https://api.bigcommerce.com/stores/{{ var('store_hash') }}/{{ var('api_version') }}/customers"
-    method: POST
-    headers:
-      "Content-Type": "application/json"
+    source: "mailchimp"
+    url_expression: |
+      email = context.var('customer')['email']
+      import hashlib
+      subscriber_hash = hashlib.md5(email.lower().encode()).hexdigest()
+      return "https://{{ var('dc') }}.api.mailchimp.com/{{ var('api_version') }}/lists/{{ var('mailchimp_list_id') }}/members/" + subscriber_hash
+    method: PATCH
+    parameters:
+      skip_merge_validation: true
     body_format: json
     body_expression: |
-        return [{
-          "first_name": context.var("customer").get("first_name"),
-          "last_name": context.var("customer").get("last_name"),
-          "email": context.var("customer").get("email")
-        }]         
+        customer = context.var('customer')
+        return {
+          "merge_fields": {
+            "TOTALSPENT": float(customer['total_spent']),
+            "ORDERCOUNT": customer['order_count']
+          }
+        }
   response:
     success_status: [200]
-    tables: 
-      - source: "stage"
-        table: "bc_customers_inserted"
-        columns: {id: "text", "source_id": "text", "first_name": "text", "last_name": "text", "email": "text"}
-    parser_expression: |
-      # extract customer with newly generated customer ID
-      customers_created = response.json()['data'][0]
-      # add the source ID
-      customers_created['source_id'] = context.var("customer").get("id")
-      return {
-        "tables": {  
-          "bc_customers_inserted": [ customers_created ]
-        }
-      } 
 ```
 
-## Example 3 - complex data handling: Map nested Shopify data into referenced tables
+## Example 3 - Complex data handling: Map nested Shopify data into referenced tables
 ```
 - op: http_request
   id: get_customers
@@ -92,12 +83,12 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
   response:
     success_status: [200]
     tables: 
-      - source: "stage"
+      - source: "postgres"
         table: "shopify_customers"
         columns: {
           "id": "text", "first_name": "text", "last_name": "text", "email": "text"
         }
-      - source: "stage"
+      - source: "postgres"
         table: "shopify_customer_addresses"
         columns: {
           "id": "text", "customer_id": "text", "address1": "text", "address2": "text",
