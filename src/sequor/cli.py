@@ -218,11 +218,13 @@ if __name__ == "__main__":
 
 
     # Utility
-    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers_light", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "hubspot_fetch_companies", "--op-id", "get_companies", "--stacktrace", "--project-dir",
     #             "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "hubspot_fetch_companies", "--op-id", "get_companies", "--debug-httprequest-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
-    # sys.argv = ["cli.py", "run", "bigcommerce_create_customers", "--op-id", "create_customers", "--debug-httprequest-foreach-test-record", '{"id":"1", "first_name":"Bob", "last_name": "brown", "email":"bob@brown1.net"}', "--debug-httprequest-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env-dir", "/Users/maximgrinev/sequor-env"]
+    # sys.argv = ["cli.py", "run", "mailchimp_update_members", "--op-id", "update_mailchimp_members", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    # sys.argv = ["cli.py", "run", "mailchimp_update_members", "--op-id", "update_mailchimp_members", "--debug-httprequest-foreach-test-record", '{"email":"gomez@gomeztech.com", "total_spent": 12000, "order_count": 1009}', "--debug-httprequest-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+
 
 
  

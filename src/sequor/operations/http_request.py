@@ -295,7 +295,15 @@ class HTTPRequestOp(Op):
             http_source_def = http_source.get_rendered_def()
         # self.op_def = render_jinja(context, self.op_def)
 
-        # Extract input def (rendered)
+        # Extract init def
+        init_def = Op.get_parameter(context, self.op_def, 'init', is_required=False, render=3)
+        if init_def is not None:
+            init_def = Op.eval_parameter(context, init_def, render=0, null_literal=False)  # render=0 because we did render=3 above
+            for name, value_def in init_def.get('variables', {}).items():
+                set_variable_from_def(context, name, value_def)
+
+
+        # Extract for_each def (rendered)
         foreach_def = self.op_def.get('for_each')
         if foreach_def:
             location_desc="for_each section"
