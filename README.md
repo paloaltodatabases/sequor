@@ -17,7 +17,6 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ## Example 1 - Data acquisition: Load BigCommerce customers into database
 ```yaml
 - op: http_request
-  id: get_customers
   request:
     source: "bigcommerce"
     url: "https://api.bigcommerce.com/stores/{{ var('store_hash') }}/{{ var('api_version') }}/customers"
@@ -27,17 +26,10 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
   response:
     success_status: [200]
     tables: 
-      - source: "postgres"
+      - source: "stage"
         table: "bc_customers"
         columns: {"id": "text", "first_name": "text", "last_name": "text"}
-    parser_expression: |
-        data_parsed = response.json()
-        customers = data_parsed['data']
-        return {
-          "tables": {
-            "bc_customers": customers
-          }
-        }
+        data_expression: response.json()['data']
 ```
 
 ## Example 2 - Reverse ETL: Update Mailchimp custom fields with customer metrics from a database table
@@ -55,11 +47,9 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
       subscriber_hash = hashlib.md5(email.lower().encode()).hexdigest()
       return "https://{{ var('dc') }}.api.mailchimp.com/{{ var('api_version') }}/lists/{{ var('mailchimp_list_id') }}/members/" + subscriber_hash
     method: PATCH
-    parameters:
-      skip_merge_validation: true
     body_format: json
     body_expression: |
-        customer = context.var('customer')
+        customer = var('customer')
         return {
           "merge_fields": {
             "TOTALSPENT": customer['total_spent'],
@@ -73,7 +63,6 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ## Example 3 - Complex data handling: Map nested Shopify data into referenced tables
 ```yaml
 - op: http_request
-  id: get_customers
   request:
     source: "shopify"
     url: "https://{{ var('store_name') }}.myshopify.com/admin/api/{{ var('api_version') }}/customers.json"
@@ -88,32 +77,28 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
         columns: {
           "id": "text", "first_name": "text", "last_name": "text", "email": "text"
         }
+        data_expression: |
+          customers = response.json()['customers']          
+          for customer in customers:            
+            # flattening the nested object
+            customer['email_consent_state'] = customer['email_marketing_consent'].get('state') 
+            customer['opt_in_level'] = customer['email_marketing_consent'].get('single_opt_in')
+          return customers
       - source: "postgres"
         table: "shopify_customer_addresses"
         columns: {
           "id": "text", "customer_id": "text", "address1": "text", "address2": "text",
           "city": "text", "province": "text", "zip": "text", "country": "text"
         }
-    parser_expression: |
-        customers = response.json()['customers']          
-        customer_addresses = []
-        for customer in customers:
-        
-          # flattening the nested object
-          customer['email_consent_state'] = customer['email_marketing_consent']['state'] 
-          customer['opt_in_level'] = customer['email_marketing_consent'].get('single_opt_in') 
-          
-          # extract nested list of addresses and add customer_id to each address for reference
-          for address in customer['addresses']:
-            address['customer_id'] = customer['id'] 
-            customer_addresses.append(address)
-            
-        return {
-          "tables": {  
-            "shopify_customers": customers,
-            "shopify_customer_addresses": customer_addresses
-          }
-        }
+        data_expression: |
+          customers = response.json()['customers']          
+          customer_addresses = []
+          for customer in customers:              
+            # extract nested list of addresses and add customer_id to each address for reference
+            for address in customer['addresses']:
+              address['customer_id'] = customer['id'] 
+              customer_addresses.append(address)
+          return customer_addresses
 ```
 
 ## Example 4: Run SQL to prepare API input, transform API responses, or build analytics table
@@ -144,7 +129,7 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
 ```yaml
 - op: if
   conditions:
-    - condition: '{{ query_value("select count(*) from inventory_to_update", int) > 0 }}'
+    - condition_expression: query_scalar("postgres", "select count(*) from inventory_to_update") > 0
       then:
         - op: run_workflow
           flow: "update_inventory"
