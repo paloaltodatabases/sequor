@@ -49,13 +49,13 @@ Sequor is designed around an intuitive YAML-based workflow definition. Every int
     method: PATCH
     body_format: json
     body_expression: |
-        customer = var('customer')
-        return {
-          "merge_fields": {
-            "TOTALSPENT": customer['total_spent'],
-            "ORDERCOUNT": customer['order_count']
-          }
+      customer = var('customer')
+      return {
+        "merge_fields": {
+          "TOTALSPENT": customer['total_spent'],
+          "ORDERCOUNT": customer['order_count']
         }
+      }
   response:
     success_status: [200]
 ```
