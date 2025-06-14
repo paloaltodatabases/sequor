@@ -6,7 +6,6 @@ from sequor.core.op import Op
 from sequor.source.table_address import TableAddress
 
 
-# @Op.register('transform')
 class TransformOp(Op):
     def __init__(self, proj, op_def: Dict[str, Any]):
         self.name = op_def.get('op')
@@ -14,11 +13,12 @@ class TransformOp(Op):
         self.op_def = op_def
 
     def get_title(self) -> str:
+        title = self.name
         op_id = self.op_def.get('id')
         if (op_id is not None):
             title = self.name + ": " + op_id
-        else:
-            title = self.name + ": " + self.op_def.get('target_table') if self.op_def.get('target_table') else "unknown"
+        elif self.op_def.get('target_table') is not None:
+            title = self.name + ": " + self.op_def.get('target_table')
         return title
 
     def run(self, context, op_options: Dict[str, Any]):

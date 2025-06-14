@@ -22,8 +22,12 @@ class SQLSource(Source):
 
     def get_qualified_name(self, table_addr: TableAddress):
         return f"{table_addr.namespace_name}.{table_addr.table_name}" if table_addr.namespace_name else table_addr.table_name
+    
+    def quote_name(self, name: str):
+        return f'"{name}"'
 
     def get_create_table_sql(self, query: str, table_addr: TableAddress) -> str:
         target_table_qualified = self.get_qualified_name(table_addr)
         query = f"CREATE TABLE {target_table_qualified} AS {query}"
         return query
+    

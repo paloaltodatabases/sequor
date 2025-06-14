@@ -1,3 +1,4 @@
+import ast
 import builtins
 import logging
 from typing import Any, Callable, List, NamedTuple
@@ -6,6 +7,12 @@ from jinja2 import Template, StrictUndefined
 
 from sequor.core.execution_stack_entry import ExecutionStackEntry
 from sequor.core.user_error import UserError
+from sequor.source.table_address import TableAddress
+
+# if you add anything here, you must also add it to Op.eval_parameter: context, ... standard functions ..., ... extra_params ...
+user_function_params_def = ["context", "is_var_defined", "var", "table", "query", "query_scalar", "response"]
+
+
 
 def set_variable_from_def(context: Context, name: str, value_def: Any):
     if isinstance(value_def, dict):
@@ -63,8 +70,22 @@ class UserContext:
             raise UserError(f"Variable '{name}' is not defined")
         return value
     
-    def query(self, source_name: str, query: str, database_name: str = None, spacename_name: str = None):
-        source = self.proj.get_source(self.context, source_name)
+    def table(self, source_name: str, table_name: str, database_name: str = None, spacename_name: str = None):
+        source = self.context.project.get_source(self.context, source_name)
+        table_addr = TableAddress(source_name, database_name, spacename_name, table_name)
+        result = []
+        with source.connect() as conn:
+            conn.open_table_for_read(table_addr)
+            row_count = 0
+            row = conn.next_row()
+            while row is not None:
+                row_count += 1
+                result.append(row)
+                row = conn.next_row()
+        return result
+    
+    def query(self, source_name: str, query: str):
+        source = self.context.project.get_source(self.context, source_name)
         result = []
         with source.connect() as conn:
             conn.open_query(query)
@@ -72,9 +93,25 @@ class UserContext:
             row = conn.next_row()
             while row is not None:
                 row_count += 1
-                row = conn.next_row()
                 result.append(row)
+                row = conn.next_row()
         return result
+    
+    def query_scalar(self, source_name: str, query: str):
+        source = self.context.project.get_source(self.context, source_name)
+        res_value = None
+        with source.connect() as conn:
+            conn.open_query(query)
+            row = conn.next_row()
+            if row is not None:
+                res_value = row.columns[0].value
+                row = conn.next_row()
+                if row is not None:
+                    UserError(f"query_value error: query returned multiple rows: {query}")
+            else:
+                UserError(f"query_value error: query returned no rows: {query}")
+        return res_value
+    
 
 
 def build_jinja_user_context(context: Context):
@@ -162,21 +199,30 @@ def user_function_error_message(e: Exception, key_name: str, line_in_code: int, 
     error_msg = f"{prefix} in {key_name} ({position_in_code}line {absolute_line_in_yaml} in YAML): {type(e).__name__}: {str(e)}"
     return error_msg
 
-def load_user_function(function_code: str, key_name: str, line_in_yaml: int, function_params_def: str = "context", function_name: str = "evaluate", extra_globals=None):
-    """
-    Compile and safely execute user-defined Python function from string.
-    
-    :param function_code: Python function as string
-    :param function_name: Name of the function to load from the executed code
-    :param extra_globals: Optional dictionary of additional safe global objects (eg. json)
-    :return: Callable function
-    """
-    auto_wrapped = False
-    if not function_code.strip().startswith("def evaluate"):
-        auto_wrapped = True
-        # Properly indent the function body with 4 spaces
-        indented_body = '\n'.join('    ' + line for line in function_code.splitlines())
-        function_code = f"def evaluate({function_params_def}):\n{indented_body}"
+def load_user_function(function_code: str, key_name: str, line_in_yaml: int): # function_params_def: str = "context", 
+    # must match parameters passed in Op.eval_parameter of op.py
+    function_name: str = "evaluate"
+    # auto_wrapped = False
+    if function_code.strip().startswith("def evaluate"):
+        raise UserError(f"Sequor does not require to define 'evaluate' function anymore. Please remove the 'def evaluate(...):' line from the function code of YAML property '{key_name}'")
+    auto_wrapped = True
+
+    try:
+        # Test if it's a valid single expression
+        ast.parse(function_code.strip(), mode='eval')
+        function_body = f"return ({function_code})"
+    except SyntaxError:
+        # Not a single expression, check if it's valid multi-line code
+        try:
+            ast.parse(function_code.strip(), mode='exec')
+            function_body = function_code
+        except SyntaxError as e:
+            function_body = function_code
+        
+    # Properly indent the function body with 4 spaces
+    indented_body = '\n'.join('    ' + line for line in function_body.splitlines())
+    user_function_params_def_str = ", ".join(user_function_params_def)
+    function_code = f"def evaluate({user_function_params_def_str}):\n{indented_body}"
 
     # Compile the code first to catch syntax errors
     try:
@@ -191,10 +237,6 @@ def load_user_function(function_code: str, key_name: str, line_in_yaml: int, fun
     safe_globals = {
         "__builtins__": get_restricted_builtins()
     }
-
-    # Optionally add safe standard libraries
-    if extra_globals:
-        safe_globals.update(extra_globals)
 
     local_namespace = {}
 
@@ -221,9 +263,9 @@ def load_user_function(function_code: str, key_name: str, line_in_yaml: int, fun
 
     # Retrieve the function object
     user_function = local_namespace.get(function_name)
-    if not user_function:
-        fun_not_defined_error = UserError(f"Function {function_name} not found in user code")
-        raise UserError(user_function_error_message(fun_not_defined_error, key_name, None, line_in_yaml, auto_wrapped, "Error"))
+    # if not user_function:
+    #     fun_not_defined_error = UserError(f"Function {function_name} not found in user code")
+    #     raise UserError(user_function_error_message(fun_not_defined_error, key_name, None, line_in_yaml, auto_wrapped, "Error"))
 
     # Attach the source code and filename to the function for better error reporting
     user_function.__source_code__ = function_code

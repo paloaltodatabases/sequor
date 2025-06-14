@@ -15,11 +15,10 @@ class IfOp(Op):
         super().__init__(proj, op_def)
 
     def get_title(self) -> str:
-        op_title = self.op_def.get('title')
-        if (op_title is not None):
-            title = self.name + ": " + op_title
-        else:
-            title = self.name
+        title = self.name
+        op_id = self.op_def.get('id')
+        if (op_id is not None):
+            title = self.name + ": " + op_id
         return title
 
     def run(self, context: Context, op_options: Dict[str, Any]):
@@ -27,7 +26,7 @@ class IfOp(Op):
         # in "control statement" type of op we cannot render the whole op_def as it contains other ops
         # for which context is not available yet -> we will render each parameter individually
         # self.op_def = render_jinja(context, self.op_def)
-        logger.info(f"Starting")
+        logger.info(f"Starting \"{self.get_title()}\"")
         conditions_def = self.op_def.get('conditions')
         block_op = None
         is_condition_met = False
@@ -35,6 +34,7 @@ class IfOp(Op):
         for index, conditions_def in enumerate(conditions_def):
             condition_value_def = conditions_def.get("condition")
             condition = Op.get_parameter(context, conditions_def, 'condition', is_required=True, render=3)
+            condition = Op.eval_parameter(context, condition, "condition", render=0, location_desc=None, extra_params=[])
             then_steps_def = conditions_def.get('then')
             if str(condition).strip().lower() == "true":
                 block_op_def = {
@@ -56,7 +56,7 @@ class IfOp(Op):
                 "op_name_alias": f"else_block",
                 "steps": else_steps_def
             }
-            block_op = Op.op_from_def(context.project, block_op_def)
+            block_op = create_op(context.project, block_op_def)
         # flow.run(context)
         new_context = context.clone()
         new_context.set_flow_info("if", None)
@@ -65,4 +65,6 @@ class IfOp(Op):
         else:
             new_context.set_flow_step_info(None)
         context.job.run_op(new_context, block_op, None)
-        logger.info(f"Finished")
+        # logger.info(f"Finished")
+        context.add_to_log_op_finished(
+            logger, f"Finished \"" + self.get_title() + "\"")

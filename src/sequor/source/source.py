@@ -27,6 +27,9 @@ class Source:
     def get_default_namespace_name(self):
         raise NotImplementedError("Subclasses must implement get_default_namespace_name()")
 
+    def quote_name(self, name: str):
+        raise NotImplementedError("Subclasses must implement quote_name()")
+
     @staticmethod
     def get_parameter(context, source_def: Dict[str, Any], name: str, is_required: bool = False, render: bool = False) -> Any:
         param_value = source_def.get(name)
