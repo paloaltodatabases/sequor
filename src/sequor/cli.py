@@ -214,11 +214,11 @@ if __name__ == "__main__":
 
 
     # sequor-integrations tests
-    # sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    sys.argv = ["cli.py", "run", "0_run_tests", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
 
 
     # Utility
-    sys.argv = ["cli.py", "run", "shopify_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
+    # sys.argv = ["cli.py", "run", "shopify_fetch_customers", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers_variations", "--op-id", "get_customers_without_pagenation", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "bigcommerce_fetch_customers_variations", "--op-id", "get_customers_with_response_expression", "--debug-httprequest-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
     # sys.argv = ["cli.py", "run", "salesforce_create_accounts", "--op-id", "post_accounts", "--debug-httprequest-foreach-test-record", '{"id":"1", "Name": "Bob Smith"}', "--debug-httprequest-preview-trace", "--stacktrace", "--project-dir", "/Users/maximgrinev/myprogs/sequor-integrations", "--env", "dev", "--home-dir", "/Users/maximgrinev/.sequor-dev"]
