@@ -51,8 +51,17 @@ class SQLConnection(Connection):
     
     def create_table(self, table_addr: TableAddress, model: Model):
         table_qualified_name = self.source.get_qualified_name(table_addr)
-        self.conn.execute(text(f"CREATE TABLE {table_qualified_name} ({', '.join([c.name + ' ' + c.type.name for c in model.columns])})"))
+        query = f"CREATE TABLE {table_qualified_name} ({', '.join([self.source.quote_name(c.name) + ' ' + c.type.name for c in model.columns])})"
+        self.conn.execute(text(query))
     
+    def add_column(self, table_addr: TableAddress, column_name: str, column_type: DataType):
+        table_qualified_name = self.source.get_qualified_name(table_addr)
+        self.conn.execute(text(f"ALTER TABLE {table_qualified_name} ADD COLUMN {column_name} {column_type.name}"))
+
+    def drop_column(self, table_addr: TableAddress, column_name: str):
+        table_qualified_name = self.source.get_qualified_name(table_addr)
+        self.conn.execute(text(f"ALTER TABLE {table_qualified_name} DROP COLUMN {column_name}"))
+
     def execute_update(self, query: str):
         self.conn.execute(text(query))
         self.conn.commit()
@@ -66,7 +75,7 @@ class SQLConnection(Connection):
         table_qualified_name = self.source.get_qualified_name(table_addr)
 
         # build sql
-        columns_sql = [c.name for c in self.open_table_for_insert_model.columns]
+        columns_sql = [self.source.quote_name(c.name) for c in self.open_table_for_insert_model.columns]
         placeholders_sql = [f":{c.name}" for c in self.open_table_for_insert_model.columns]
         sql = f"INSERT INTO {table_qualified_name}(" + ", ".join(columns_sql) + ") VALUES (" + ", ".join(placeholders_sql) + ")"
         

@@ -8,7 +8,6 @@ from sequor.source.sources.duckdb_source import DuckDBSource
 from sequor.source.sources.http_source import HTTPSource
 from sequor.source.sources.sql_source import SQLSource
 
-
 def create_source(context: 'Context', source_name: str, source_def: Dict[str, Any]) -> Any:
     source: Source = None
     source_type = source_def.get('type')
@@ -57,6 +56,9 @@ def create_op(proj, op_def: Dict[str, Any]) -> 'Op':
     elif op_type == "block":
         from sequor.operations.block import BlockOp
         op = BlockOp(proj, op_def)
+    elif op_type == "migrate_schema":
+        from sequor.operations.migrate_schema import MigrateSchemaOp
+        op = MigrateSchemaOp(proj, op_def)
     else:
         raise UserError(f"Unknown operation: {op_type}")
     # if op_type not in cls._registry:

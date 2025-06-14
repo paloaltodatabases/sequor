@@ -21,7 +21,7 @@ from authlib.integrations.requests_client import OAuth2Session
 
 
 class HTTPRequestParameters:
-    def __init__(self, auth_handler, oauth_session, url, method, parameters, headers, body_format, body, success_status, target_table_addrs, parse_response_fun):
+    def __init__(self, auth_handler, oauth_session, url, method, parameters, headers, body_format, body, response_def): # success_status, target_table_addrs, parse_response_fun):
         self.auth_handler = auth_handler
         self.oauth_session = oauth_session
         self.url = url
@@ -30,11 +30,33 @@ class HTTPRequestParameters:
         self.headers = headers
         self.body = body
         self.body_format = body_format
-        self.success_status = success_status
-        self.target_table_addrs = target_table_addrs
-        self.parse_response_fun = parse_response_fun
+        self.response_def = response_def
+        # self.success_status = success_status
+        # self.target_table_addrs = target_table_addrs
+        # self.parse_response_fun = parse_response_fun
 
+class UserResponse:
+    def __init__(self, response: requests.Response):
+        self.response = response
+        self.response_json_parsed = None
 
+    def status_code(self):
+        return self.response.status_code
+    
+    def json(self):
+        if self.response_json_parsed is not None:
+            return self.response_json_parsed
+        else:
+            self.response_json_parsed = self.response.json()
+            return self.response_json_parsed
+    
+    def text(self):
+        return self.response.text
+    
+    def headers(self):
+        return self.response.headers
+    
+    
 class APIKeyAuth(AuthBase):
     def __init__(self, key, value, add_to='header'):
         self.key = key
@@ -137,7 +159,7 @@ class HTTPRequestOp(Op):
             auth_handler = http_params.auth_handler
 
         # Serialize body to body_format
-        body = Op.eval_parameter(context, http_params.body, render=1, null_literal=True)
+        body = Op.eval_parameter(context, http_params.body, "body", render=1, null_literal=True, location_desc="request")
         request_body = None
         if http_params.body_format == "json":
             # body_dict = self._convert_yaml_to_python(body)
@@ -148,7 +170,10 @@ class HTTPRequestOp(Op):
             # if "Content-Type" not in headers:
             # #     headers["Content-Type"] = "application/json"
         if http_params.body_format == "form_urlencoded":
-            request_body = urllib.parse.urlencode(self._convert_yaml_to_python(body))
+            body_dict = self._convert_yaml_to_python(body)
+            if not isinstance(body_dict, dict):
+                raise UserError("Request body must be dictionary for form_urlencoded body format: " + str(body_dict))
+            request_body = urllib.parse.urlencode(body_dict)
             # if "Content-Type" not in headers:
             #     headers["Content-Type"] = "application/x-www-form-urlencoded"
         elif http_params.body_format == "multipart_form_data":
@@ -185,11 +210,14 @@ class HTTPRequestOp(Op):
             # if "Content-Type" not in headers:
             #     headers["Content-Type"] = "application/octet-stream"
 
+        parameters = Op.eval_parameter(context, http_params.parameters, "parameters", render=1, location_desc="request")
+        parameters = Op.eval_dict(context, parameters, "parameters", location_desc="request")
+
         response = http_service.request(
-            method = Op.eval_parameter(context, http_params.method, render=1),  # or "POST", "PUT", "DELETE", etc.
-            url = Op.eval_parameter(context, http_params.url, render=1),
-            params = Op.eval_parameter(context, http_params.parameters, render=1), # {"key": "value"},  # Query parameters
-            headers = Op.eval_parameter(context, http_params.headers, render=1), # {"Content-Type": "application/json"},
+            method = Op.eval_parameter(context, http_params.method, "method", render=1, location_desc="request"),  # or "POST", "PUT", "DELETE", etc.
+            url = Op.eval_parameter(context, http_params.url, "url", render=1, location_desc="request"),
+            params = parameters, # {"key": "value"},  # Query parameters
+            headers = Op.eval_parameter(context, http_params.headers, "headers", render=1, location_desc="request"), # {"Content-Type": "application/json"},
             auth = auth_handler,
             # json={"data": "payload"},  # JSON body
             # data={"form": "data"},     # Form data
@@ -204,38 +232,86 @@ class HTTPRequestOp(Op):
             logger.info(f"HTTP request trace:\n----------------- TRACE START -----------------\n{http_log_st}\n----------------- TRACE END -----------------")
         return response
 
-    def _make_request(self, context, http_req_params: HTTPRequestParameters, op_options: Dict[str, Any], logger: logging.Logger):
+    def _make_request(self, context, http_params: HTTPRequestParameters, op_options: Dict[str, Any], logger: logging.Logger):
         while True:
-            response = self._make_request_helper(context, http_req_params, op_options, logger)
+            response = self._make_request_helper(context, http_params, op_options, logger)
+            response_user = UserResponse(response)
+            response_def = Op.eval_parameter(context, http_params.response_def, "response", render=0, extra_params=[response_user]) 
+            # if callable(http_params.response_def):
+            #     response_def = http_params.response_def(UserContext(context), response)
+            # else:
+            #     response_def = http_params.response_def
+            
+            success_status = Op.get_parameter(context, response_def, 'success_status', is_required=False, render=3)
+            if success_status is not None and not isinstance(success_status, list):
+                raise UserError(f"success_status must be a list of integers: {success_status}")            
+            if success_status is not None:
+                if response.status_code not in success_status:
+                    raise UserError(f"HTTP request failed with unexpected status code: {response.status_code}. Expected status codes: {success_status}. Response body: {response.text}") 
+                
+            target_source_name = Op.get_parameter(context, response_def, 'source', is_required=False, render=3)
+            target_database_name = Op.get_parameter(context, response_def, 'database', is_required=False, render=3)
+            target_namespace_name = Op.get_parameter(context, response_def, 'namespace', is_required=False, render=3)
+            target_table_name = Op.get_parameter(context, response_def, 'table', is_required=False, render=3)
+            target_tables_def = Op.get_parameter(context, response_def, 'tables', is_required=False, render=3)
+            target_table_addrs = None
+            if target_tables_def:
+                target_table_addrs = []
+                for table_def in target_tables_def:
+                    table_source_name = table_def.get('source')
+                    table_database_name = table_def.get('database')
+                    table_namespace_name = table_def.get('namespace')
+                    table_table_name = table_def.get('table')
+                    table_model_def = table_def.get('model')
+                    if table_model_def is None:
+                        table_columns_def = Op.get_parameter(context, table_def, 'columns', is_required=True, render=3)  # table_def.get('columns')
+                        if table_columns_def is not None:
+                            table_model_def = {"columns": Op.eval_parameter(context, table_columns_def, "columns",render=0, location_desc="tables.'{table_table_name}'")}
+                    data_def = Op.get_parameter(context, table_def, 'data', is_required=False, render=3) # function_params_def="context, response"
+                    data_def = Op.eval_parameter(context, data_def, "data", render=0, location_desc=f"tables.'{table_table_name}'", extra_params=[response_user])
+                    write_mode = table_def.get('write_mode')
+                    table_addr = TableAddress(table_source_name or target_source_name, table_database_name or target_database_name, table_namespace_name or target_namespace_name, 
+                                            table_table_name or target_table_name, table_model_def, data_def,write_mode)
+                    target_table_addrs.append(table_addr)
 
-            if http_req_params.success_status is not None:
-                if response.status_code not in http_req_params.success_status:
-                    raise UserError(f"HTTP request failed with unexpected status code: {response.status_code}. Expected status codes: {http_req_params.success_status}. Response body: {response.text}")            
+            parser = Op.get_parameter(context, response_def, 'parser', is_required=False, render=3)
+            # # Compile parser response function code
+            # parser = response_def.get('parser')
+            # # todo: do we have any use case to allow non-expression parser?
+            # if parser:
+            #     raise UserError("parser is not supported. Use parser_expression instead")
+            # parse_response_fun = None
+            # parse_response_expression = response_def.get('parser_expression')
+            # if parse_response_expression is not None:
+            #     parse_response_expression_line = Common.get_line_number(response_def, 'parser_expression')
+            #     parse_response_fun_compiled = load_user_function(parse_response_expression, "parser_expression", parse_response_expression_line) # , function_params_def="context, response"
+            #     parse_response_fun = UserFunction(parse_response_fun_compiled, parse_response_expression_line)
+           
 
-            while_def = False
-            if http_req_params.parse_response_fun is not None:
+            tables_to_load = []
+            if parser is not None:
                 # parse response
-                response_parsed = http_req_params.parse_response_fun.apply(UserContext(context), response)
+                # response_parsed = parse_response_fun.apply(UserContext(context), response_user)
+                response_parsed = Op.eval_parameter(context, parser, "parser", render=0, location_desc="response", extra_params=[response_user])
 
                 # preprocess target table definitions: 
                 # target tables are created inside the loader get_connection() method, it means that they will not be created without the response parser
                 tables_def = response_parsed.get('tables')
-                tables_to_load = []
-                if http_req_params.target_table_addrs is not None:
+                if target_table_addrs is not None:
                     if tables_def is None or not isinstance(tables_def, dict):
                         raise UserError("Response parser must return data as a dictionary for 'tables' defined in the response.tables section of this http_request op: " + str(tables_def))
                     # if not isinstance(tables_def, dict):
                     #     raise UserError("Response parser must return data for 'tables' as a dictionary because tables are defined in the response.tables section of this http_request op: " + str(tables_def))
                     # Check that all required tables have data
-                    for table_addr in http_req_params.target_table_addrs:
+                    for table_addr in target_table_addrs:
                         if table_addr.table_name not in tables_def:
                             raise UserError(f"Data for the target table {table_addr.table_name} not found in the result returned by the HTTP response parser.")
                     # Check that no extra tables were returned
                     for table_name in tables_def:
-                        if not any(table_addr.table_name == table_name for table_addr in http_req_params.target_table_addrs):
+                        if not any(table_addr.table_name == table_name for table_addr in target_table_addrs):
                             raise UserError(f"Unexpected table '{table_name}' found in the result returned by the HTTP response parser. This table was not defined in the response.tables section of this http_request op.")
                     # tables to load
-                    for table_addr in http_req_params.target_table_addrs:
+                    for table_addr in target_table_addrs:
                         table_addr_clone = table_addr.clone()
                         table_addr_clone.data = tables_def.get(table_addr.table_name)
                         tables_to_load.append(table_addr_clone)
@@ -253,17 +329,40 @@ class HTTPRequestOp(Op):
                             table_addr_from_def = TableAddress(table_def.get('source'), table_def.get('database'), table_def.get('namespace'), table_def.get('table'),
                                                                table_model_def, table_def.get('data'), table_def.get('write_mode'))
                             tables_to_load.append(table_addr_from_def)
+                
+                if response_parsed.get('variables') is not None:
+                    response_def["variables"] = response_parsed.get('variables')
+                if response_parsed.get('while') is not None:
+                    response_def["while"] = response_parsed.get('while')
+            elif target_table_addrs is not None:
+                tables_to_load = target_table_addrs
 
-                # load tables    
-                self.data_loader.run(context, tables_to_load)
+            # load tables    
+            self.data_loader.run(context, tables_to_load)
 
-                # set returned variables
-                for name, value_def in response_parsed.get('variables', {}).items():
-                    set_variable_from_def(context, name, value_def)
+            # set returned variables
+            variables_def = Op.get_parameter(context, response_def, 'variables', is_required=False, render=3, location_desc="response") # , function_params_def="context, response"
+            variables_def = Op.eval_parameter(context, variables_def, "variables", render=0, location_desc="response", extra_params=[response_user])
+            if variables_def is None:
+                variables_def = {}
+            variables_def = Op.eval_dict(context, variables_def, "variables", location_desc="response", extra_params=[response_user])
+            for name, value_def in variables_def.items():
+                # if name.endswith("_expression"):
+                #     name_real = name[:-11]  # Remove "_expression" suffix
+                #     value_def = Op.get_parameter(context, variables_def, name_real, is_required=False, render=3)
+                #     value_def = Op.eval_parameter(context, value_def, render=0, extra_params=[response_user])
+                # else:
+                #     real_name = name
+                if isinstance(value_def, dict):
+                    value_def = Op.eval_dict(context, value_def, "values", location_desc="response.variables", extra_params=[response_user])
+                set_variable_from_def(context, name, value_def)
 
-                while_def = response_parsed.get('while', False)
-                if not isinstance(while_def, bool):
-                    raise UserError("\"while\" in the result of the response parser must be a boolean: " + str(while_def))
+            while_def = Op.get_parameter(context, response_def, 'while', is_required=False, render=3, location_desc="response") # , function_params_def="context, response"
+            while_def = Op.eval_parameter(context, while_def, "while", render=0, location_desc="response", extra_params=[response_user])
+            if while_def is None:
+                while_def = False
+            if not isinstance(while_def, bool):
+                raise UserError("\"while\" in the result of the response section must be a boolean: " + str(while_def))
             
             if not while_def:
                 break
@@ -298,7 +397,7 @@ class HTTPRequestOp(Op):
         # Extract init def
         init_def = Op.get_parameter(context, self.op_def, 'init', is_required=False, render=3)
         if init_def is not None:
-            init_def = Op.eval_parameter(context, init_def, render=0, null_literal=False)  # render=0 because we did render=3 above
+            init_def = Op.eval_parameter(context, init_def, "init", render=0, null_literal=False)  # render=0 because we did render=3 above
             for name, value_def in init_def.get('variables', {}).items():
                 set_variable_from_def(context, name, value_def)
 
@@ -306,7 +405,7 @@ class HTTPRequestOp(Op):
         # Extract for_each def (rendered)
         foreach_def = self.op_def.get('for_each')
         if foreach_def:
-            location_desc="for_each section"
+            location_desc="for_each"
             # do not render the rest of foreach_def here as it can cause variable unresolved error in case of using --debug_ parameters
             def parse_foreach_def():
                 nonlocal location_desc
@@ -332,47 +431,11 @@ class HTTPRequestOp(Op):
             raise UserError("body_format is required when request body is provided (e.g. \"json\", \"form_urlencoded\", etc)")
         
         # Extract response def
-        # todo: do we have any use case when we need to render=2. In this case ninja can be used to dinamically set targer_table_addr -> danger: DataLoader will open too many connections!
-        response_def = self.op_def.get('response', {})
-        success_status = Op.get_parameter(context, response_def, 'success_status', is_required=False, render=3)
-        if success_status is not None and not isinstance(success_status, list):
-            raise UserError(f"success_status must be a list of integers: {success_status}")
-        target_source_name = Op.get_parameter(context, response_def, 'source', is_required=False, render=3)
-        target_database_name = Op.get_parameter(context, response_def, 'database', is_required=False, render=3)
-        target_namespace_name = Op.get_parameter(context, response_def, 'namespace', is_required=False, render=3)
-        target_table_name = Op.get_parameter(context, response_def, 'table', is_required=False, render=3)
-        target_tables_def = Op.get_parameter(context, response_def, 'tables', is_required=False, render=3)
-        # target_table_addr = TableAddress(target_database_name, target_namespace_name, target_table_name)
-        target_table_addrs = None
-        if target_tables_def:
-            target_table_addrs = []
-            for table_def in target_tables_def:
-                table_source_name = table_def.get('source')
-                table_database_name = table_def.get('database')
-                table_namespace_name = table_def.get('namespace')
-                table_table_name = table_def.get('table')
-                table_model_def = table_def.get('model')
-                if table_model_def is None:
-                    table_columns_def = table_def.get('columns')
-                    if table_columns_def is not None:
-                        table_model_def = {"columns": table_columns_def}               
-                write_mode = table_def.get('write_mode')
-                table_addr = TableAddress(table_source_name or target_source_name, table_database_name or target_database_name, table_namespace_name or target_namespace_name, 
-                                          table_table_name or target_table_name, table_model_def, write_mode)
-                target_table_addrs.append(table_addr)
-
-        # Compile parser response function code
-        parser = response_def.get('parser')
-        # todo: do we have any use case to allow non-expression parser?
-        if parser:
-            raise UserError("parser is not supported. Use parser_expression instead")
-        parse_response_fun = None
-        parse_response_expression = response_def.get('parser_expression')
-        if parse_response_expression is not None:
-            parse_response_expression_line = Common.get_line_number(response_def, 'parser_expression')
-            parse_response_fun_compiled = load_user_function(parse_response_expression, "parser_expression", parse_response_expression_line, function_params_def="context, response")
-            parse_response_fun = UserFunction(parse_response_fun_compiled, parse_response_expression_line)
-
+        # todo: do we have any use case when we need to render=2. In this case ninja can be used to dynamically set targer_table_addr -> danger: DataLoader will open too many connections!
+        response_def = Op.get_parameter(context, self.op_def, 'response', is_required=False, render=3)  # self.op_def.get('response', {}) , function_params_def="context, response"
+        if response_def == None:
+            response_def = {}
+        
         auth_handler = None
         oauth_session = None
         if http_source_name:
@@ -409,7 +472,7 @@ class HTTPRequestOp(Op):
             else:
                 raise UserError(f"Unsupported auth type: {http_source_auth_type}")
         
-        http_req_params = HTTPRequestParameters(auth_handler, oauth_session, url, method, parameters, headers, body_format, body, success_status, target_table_addrs, parse_response_fun)
+        http_req_params = HTTPRequestParameters(auth_handler, oauth_session, url, method, parameters, headers, body_format, body, response_def) # success_status, target_table_addrs, parse_response_fun)
 
 
         if op_options.get("debug_foreach_record") or op_options.get("debug_request_preview_trace") or op_options.get("debug_request_preview_pretty"):

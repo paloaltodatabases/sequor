@@ -1,4 +1,5 @@
 from typing import Union
+from sequor.source.data_type import DataType
 from sequor.source.model import Model
 from sequor.source.row import Row
 from sequor.source.source import Source
@@ -17,6 +18,10 @@ class Connection:
         raise NotImplementedError("Subclasses must implement drop_table_if_exists()")
     def create_table(self, table_addr: TableAddress):
         raise NotImplementedError("Subclasses must implement create_table()")
+    def add_column(self, table_addr: TableAddress, column_name: str, column_type: DataType):
+        raise NotImplementedError("Subclasses must implement add_columns()")
+    def drop_column(self, table_addr: TableAddress, column_name: str):
+        raise NotImplementedError("Subclasses must implement drop_columns()")
     
     def execute_update(self, query: str):
         raise NotImplementedError("Subclasses must implement execute_update()")

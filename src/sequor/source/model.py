@@ -35,3 +35,9 @@ class Model:
             columns.append(ColumnSchema(name, type))
 
         return Model.from_columns(columns)
+    
+    def get_column(self, name: str) -> ColumnSchema:
+        for column in self.columns:
+            if column.name == name:
+                return column
+        return None

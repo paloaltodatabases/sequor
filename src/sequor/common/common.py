@@ -7,7 +7,7 @@ class Common:
 
     @staticmethod
     def get_line_number(node, key_name):
-        key_lc = node.lc.key(key_name) if key_name in node else None
+        key_lc = node.lc.key(key_name) if key_name in node and hasattr(node, 'lc') else None
         return key_lc[0] + 1 if key_lc else None
     
     @staticmethod

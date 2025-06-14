@@ -99,12 +99,18 @@ class DataLoader:
             # if data_def is not None: # skip quietly if no data, we used it in InfoLink for HTTPRequest op but why?
             conn = self.get_connection(context, table_addr, write_mode)
             # insert data
-            for record_def in table_addr.data:
+            table_data = table_addr.data
+            if not isinstance(table_data, list):
+                raise UserError(f"'data' for table '{table_addr.table_name}' must be a list. Type '{type(table_data).__name__}' provided: {str(table_data)}")
+            for record_def in table_data:
                 record = Row()
                 for column_schema in conn.model.columns:
                     column_name = column_schema.name
-                    column_value = str(record_def.get(column_name)) # need to convert to string because it can be any type returned by the source
-                    column = Column(column_name, column_value)
+                    if not isinstance(record_def, dict):
+                        raise UserError(f"Element of 'data' array for table '{table_addr.table_name}' must be a dictionary.  Type '{type(record_def).__name__}' provided: {str(record_def)}")
+                    column_value = record_def.get(column_name)
+                    column_value_str = str(column_value) if column_value is not None else None # need to convert to string because it can be any type returned by the source
+                    column = Column(column_name, column_value_str)
                     record.add_column(column)
                 conn.insert_row(record)
 
