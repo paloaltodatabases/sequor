@@ -8,7 +8,7 @@ With Sequor's code-first approach (YAML for flows, Jinja or Python for dynamic p
 # Core capabilities
 * **YAML for clear workflow structure**: Define integration flows in readable YAML. Version control friendly, no vendor lock-in. Built-in reliability: validation, retries, task-level observability.
 
-* **Dynamic expressions for flexible logic**: Use Jinja templates `{{ var() }}` for environment variables. Add _expression suffix to any YAML property to compute it with Python. Infinite customization within YAML structure.
+* **Dynamic expressions for flexible logic**: Use Jinja templates `{{ var() }}` for environment variables. Add `_expression` suffix to any YAML property to compute it with Python. Infinite customization within YAML structure.
 
 * **Built-in database integration**: Iterate over input tables to make API calls per record. Every HTTP response maps to database tables. Seamless data flow without custom glue code.
 
