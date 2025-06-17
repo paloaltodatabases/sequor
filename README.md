@@ -1,6 +1,4 @@
 # Sequor
-Code-first API integration platform with unlimited customization and full ownership.
-
 Instead of using rigid SaaS connectors with growing costs, build complete API workflows that connect your database to any API using familiar YAML and SQL. Your requirements fully met with zero per-row costs.
 
 Sequor fuses API execution with your database, enabling bidirectional data flow between APIs and database tables. By storing intermediate data in your database, you can leverage the full power of SQL for transformations, analytics, and business logic. This unified execution model eliminates the traditional boundary between iPaaS-style app integration and ETL-style data pipelines.
